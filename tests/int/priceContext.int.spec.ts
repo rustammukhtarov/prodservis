@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { checkMinOrder } from '@/lib/orderRules'
 import { buildPriceContext } from '@/lib/pricing/priceContext'
 import { resolvePrice } from '@/lib/pricing/resolvePrice'
 import { validateInn } from '@/collections/SupplierApplications'
@@ -50,5 +51,18 @@ describe('validateInn', () => {
   it('отклоняет ошибки', () => {
     expect(validateInn('7707083890')).toBe('Неверный ИНН')
     expect(validateInn('12345')).toBe('ИНН — 10 или 12 цифр')
+  })
+})
+
+describe('checkMinOrder', () => {
+  const s = { segments: { individual: { minOrderSum: 15000 }, horeca: { minOrderSum: 0 } } }
+  it('физлицо: корзина 12 400 ₽ — не хватает 2 600 ₽', () => {
+    expect(checkMinOrder('individual', 12400, s)).toEqual({ ok: false, minOrderSum: 15000, missing: 2600 })
+  })
+  it('физлицо: ровно 15 000 ₽ — можно оформить', () => {
+    expect(checkMinOrder('individual', 15000, s).ok).toBe(true)
+  })
+  it('ресторан без ограничения', () => {
+    expect(checkMinOrder('horeca', 500, s).ok).toBe(true)
   })
 })

@@ -40,8 +40,11 @@ const veg = await upsert('categories', { slug: { equals: 'ovoschi-i-frukty' } },
 const tomatoes = await upsert('categories', { slug: { equals: 'tomaty' } }, { title: 'Томаты', parent: veg.id, sort: 10 })
 const groc = await upsert('categories', { slug: { equals: 'bakaleya' } }, { title: 'Бакалея', sort: 20 })
 
-const mk = (base: number) =>
-  [2, 3, 4, 5, 30].map((n) => ({ priceType: priceTypes[n], value: Math.round(base * (1 + (n - 2) / 100) * 100) / 100 }))
+const retailType = await upsert('price-types', { title: { equals: 'Розничный' } }, { title: 'Розничный', sort: 100 })
+const mk = (base: number) => [
+  ...[2, 3, 4, 5, 30].map((n) => ({ priceType: priceTypes[n], value: Math.round(base * (1 + (n - 2) / 100) * 100) / 100 })),
+  { priceType: retailType.id, value: Math.round(base * 1.45) },
+]
 
 const tomato = await upsert('products', { sku: { equals: 'DEMO-001' } }, {
   title: 'Томаты черри красные, 250 г',
@@ -97,9 +100,14 @@ await upsert('price-agreements', { title: { equals: 'Торги «Демо-ре�
   items: [{ product: tomato.id, price: 165 }],
 })
 
+
 await payload.updateGlobal({
   slug: 'site-settings',
-  data: { guestPriceType: priceTypes[30], orderCutoff: '17:00' },
+  data: {
+    guestPriceType: priceTypes[30],
+    orderCutoff: '17:00',
+    segments: { individual: { minOrderSum: 15000, defaultPriceType: retailType.id, autoApprove: true } },
+  },
   overrideAccess: true,
 })
 
