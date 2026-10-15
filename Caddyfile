@@ -1,0 +1,9 @@
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	# Обмен с 1С снаружи закрыт. На своём сервере он будет открыт только на внутреннем адресе.
+	@exchange path /api/exchange*
+	respond @exchange 404
+
+	reverse_proxy app:3000
+}

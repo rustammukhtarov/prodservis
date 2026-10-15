@@ -9,6 +9,7 @@ import sharp from 'sharp'
 import { Buyers } from './collections/Buyers'
 import { Categories } from './collections/Categories'
 import { Documents } from './collections/Documents'
+import { Imports } from './collections/Imports'
 import { SupplierApplications } from './collections/SupplierApplications'
 import { CustomerGroups } from './collections/CustomerGroups'
 import { Customers } from './collections/Customers'
@@ -21,6 +22,7 @@ import { ProductCollections } from './collections/ProductCollections'
 import { Products } from './collections/Products'
 import { Users } from './collections/Users'
 import { SiteSettings } from './globals/SiteSettings'
+import { migrations } from './migrations'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -47,6 +49,7 @@ export default buildConfig({
     Pages,
     Media,
     Documents,
+    Imports,
     Users,
   ],
   globals: [SiteSettings],
@@ -55,6 +58,8 @@ export default buildConfig({
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URL || '' },
+    // На боевом сервере схема базы меняется только миграциями — они применяются при запуске.
+    prodMigrations: migrations,
   }),
   sharp,
   plugins: [],

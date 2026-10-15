@@ -16,7 +16,8 @@
     "test": "pnpm run test:int && pnpm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
-    "seed:demo": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/demo.ts"
+    "seed:demo": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/demo.ts",
+    "prices:check": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/prices-check.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.2",
@@ -26,6 +27,7 @@
     "@payloadcms/ui": "3.90.2",
     "cross-env": "^7.0.3",
     "dotenv": "16.4.7",
+    "exceljs": "4.4.0",
     "graphql": "^16.8.1",
     "next": "16.3.3",
     "payload": "3.90.2",
@@ -59,5 +61,6 @@
       "esbuild",
       "unrs-resolver"
     ]
-  }
+  },
+  "packageManager": "pnpm@10.28.0"
 }

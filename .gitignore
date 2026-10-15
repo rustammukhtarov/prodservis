@@ -52,3 +52,4 @@ node_modules/
 # Закрытые загрузки (документы клиентов)
 /private-uploads
 /media
+/private-imports
