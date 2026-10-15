@@ -7,6 +7,8 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Categories } from './collections/Categories'
+import { Documents } from './collections/Documents'
+import { SupplierApplications } from './collections/SupplierApplications'
 import { CustomerGroups } from './collections/CustomerGroups'
 import { Customers } from './collections/Customers'
 import { Media } from './collections/Media'
@@ -38,9 +40,11 @@ export default buildConfig({
     PriceAgreements,
     Customers,
     CustomerGroups,
+    SupplierApplications,
     Orders,
     Pages,
     Media,
+    Documents,
     Users,
   ],
   globals: [SiteSettings],

@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
 import { adminOnly, anyone } from '../access'
+import { SEGMENTS } from '../lib/segments'
 
 /** Общие настройки сайта: контакты, условия заказа, баннеры главной. */
 export const SiteSettings: GlobalConfig = {
@@ -25,9 +26,8 @@ export const SiteSettings: GlobalConfig = {
           ],
         },
         {
-          label: 'Заказ и доставка',
+          label: 'Заказ и цены',
           fields: [
-            { name: 'minOrderSum', label: 'Минимальная сумма заказа, ₽', type: 'number', defaultValue: 0 },
             {
               name: 'orderCutoff',
               label: 'Время приёма заказов на завтра (ЧЧ:ММ)',
@@ -40,6 +40,48 @@ export const SiteSettings: GlobalConfig = {
               type: 'relationship',
               relationTo: 'price-types',
               admin: { description: 'Какие цены видит посетитель без входа. Пусто — цены скрыты до входа.' },
+            },
+            {
+              name: 'segments',
+              label: 'Условия по типам клиентов',
+              type: 'group',
+              fields: SEGMENTS.map((segment) => ({
+                name: segment.value,
+                label: segment.label,
+                type: 'group' as const,
+                fields: [
+                  {
+                    type: 'row' as const,
+                    fields: [
+                      {
+                        name: 'minOrderSum',
+                        label: 'Мин. сумма заказа, ₽',
+                        type: 'number' as const,
+                        defaultValue: 0,
+                        min: 0,
+                      },
+                      {
+                        name: 'defaultPriceType',
+                        label: 'Прайс по умолчанию',
+                        type: 'relationship' as const,
+                        relationTo: 'price-types' as const,
+                        admin: { description: 'Если клиенту не назначен свой прайс' },
+                      },
+                      {
+                        name: 'autoApprove',
+                        label: 'Активировать без проверки',
+                        type: 'checkbox' as const,
+                        defaultValue: !segment.b2b,
+                        admin: {
+                          description: segment.b2b
+                            ? 'Для юрлиц не рекомендуется: менеджер проверяет ИНН и назначает прайс'
+                            : 'Физлицо может заказывать сразу после регистрации',
+                        },
+                      },
+                    ],
+                  },
+                ],
+              })),
             },
           ],
         },

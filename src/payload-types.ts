@@ -75,9 +75,11 @@ export interface Config {
     'price-agreements': PriceAgreement;
     customers: Customer;
     'customer-groups': CustomerGroup;
+    'supplier-applications': SupplierApplication;
     orders: Order;
     pages: Page;
     media: Media;
+    documents: Document;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -93,9 +95,11 @@ export interface Config {
     'price-agreements': PriceAgreementsSelect<false> | PriceAgreementsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     'customer-groups': CustomerGroupsSelect<false> | CustomerGroupsSelect<true>;
+    'supplier-applications': SupplierApplicationsSelect<false> | SupplierApplicationsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -393,7 +397,7 @@ export interface Customer {
   id: number;
   name: string;
   phone?: string | null;
-  segment?: ('horeca' | 'retail' | 'wholesale') | null;
+  segment: 'horeca' | 'retail' | 'wholesale' | 'individual';
   status?: ('pending' | 'active' | 'blocked') | null;
   organizations?:
     | {
@@ -414,6 +418,10 @@ export interface Customer {
   priceType?: (number | null) | PriceType;
   group?: (number | null) | CustomerGroup;
   manager?: (number | null) | User;
+  consent?: {
+    accepted?: boolean | null;
+    acceptedAt?: string | null;
+  };
   /**
    * Заполняется обменом с 1С
    */
@@ -466,6 +474,45 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-applications".
+ */
+export interface SupplierApplication {
+  id: number;
+  company: string;
+  inn: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  website?: string | null;
+  assortment?: string | null;
+  offer?: (number | null) | Document;
+  consent: boolean;
+  status?: ('new' | 'review' | 'contract' | 'rejected') | null;
+  managerNote?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents".
+ */
+export interface Document {
+  id: number;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -591,6 +638,10 @@ export interface PayloadLockedDocument {
         value: number | CustomerGroup;
       } | null)
     | ({
+        relationTo: 'supplier-applications';
+        value: number | SupplierApplication;
+      } | null)
+    | ({
         relationTo: 'orders';
         value: number | Order;
       } | null)
@@ -601,6 +652,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'documents';
+        value: number | Document;
       } | null)
     | ({
         relationTo: 'users';
@@ -805,6 +860,12 @@ export interface CustomersSelect<T extends boolean = true> {
   priceType?: T;
   group?: T;
   manager?: T;
+  consent?:
+    | T
+    | {
+        accepted?: T;
+        acceptedAt?: T;
+      };
   guid1C?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -832,6 +893,25 @@ export interface CustomerGroupsSelect<T extends boolean = true> {
   title?: T;
   note?: T;
   guid1C?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-applications_select".
+ */
+export interface SupplierApplicationsSelect<T extends boolean = true> {
+  company?: T;
+  inn?: T;
+  contactName?: T;
+  phone?: T;
+  email?: T;
+  website?: T;
+  assortment?: T;
+  offer?: T;
+  consent?: T;
+  status?: T;
+  managerNote?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -945,6 +1025,24 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents_select".
+ */
+export interface DocumentsSelect<T extends boolean = true> {
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -1022,12 +1120,57 @@ export interface SiteSetting {
   address?: string | null;
   workHours?: string | null;
   requisites?: string | null;
-  minOrderSum?: number | null;
   orderCutoff?: string | null;
   /**
    * Какие цены видит посетитель без входа. Пусто — цены скрыты до входа.
    */
   guestPriceType?: (number | null) | PriceType;
+  segments?: {
+    horeca?: {
+      minOrderSum?: number | null;
+      /**
+       * Если клиенту не назначен свой прайс
+       */
+      defaultPriceType?: (number | null) | PriceType;
+      /**
+       * Для юрлиц не рекомендуется: менеджер проверяет ИНН и назначает прайс
+       */
+      autoApprove?: boolean | null;
+    };
+    retail?: {
+      minOrderSum?: number | null;
+      /**
+       * Если клиенту не назначен свой прайс
+       */
+      defaultPriceType?: (number | null) | PriceType;
+      /**
+       * Для юрлиц не рекомендуется: менеджер проверяет ИНН и назначает прайс
+       */
+      autoApprove?: boolean | null;
+    };
+    wholesale?: {
+      minOrderSum?: number | null;
+      /**
+       * Если клиенту не назначен свой прайс
+       */
+      defaultPriceType?: (number | null) | PriceType;
+      /**
+       * Для юрлиц не рекомендуется: менеджер проверяет ИНН и назначает прайс
+       */
+      autoApprove?: boolean | null;
+    };
+    individual?: {
+      minOrderSum?: number | null;
+      /**
+       * Если клиенту не назначен свой прайс
+       */
+      defaultPriceType?: (number | null) | PriceType;
+      /**
+       * Физлицо может заказывать сразу после регистрации
+       */
+      autoApprove?: boolean | null;
+    };
+  };
   banners?:
     | {
         image: number | Media;
@@ -1051,9 +1194,40 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   address?: T;
   workHours?: T;
   requisites?: T;
-  minOrderSum?: T;
   orderCutoff?: T;
   guestPriceType?: T;
+  segments?:
+    | T
+    | {
+        horeca?:
+          | T
+          | {
+              minOrderSum?: T;
+              defaultPriceType?: T;
+              autoApprove?: T;
+            };
+        retail?:
+          | T
+          | {
+              minOrderSum?: T;
+              defaultPriceType?: T;
+              autoApprove?: T;
+            };
+        wholesale?:
+          | T
+          | {
+              minOrderSum?: T;
+              defaultPriceType?: T;
+              autoApprove?: T;
+            };
+        individual?:
+          | T
+          | {
+              minOrderSum?: T;
+              defaultPriceType?: T;
+              autoApprove?: T;
+            };
+      };
   banners?:
     | T
     | {

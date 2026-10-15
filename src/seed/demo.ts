@@ -20,11 +20,11 @@ async function upsert<T extends Record<string, unknown>>(
 }
 
 const priceTypes: Record<string, number> = {}
-for (const n of [2, 3, 4, 5]) {
+for (const n of [2, 3, 4, 5, 30]) {
   const doc = await upsert('price-types', { title: { equals: `Прайс ${n}` } }, {
     title: `Прайс ${n}`,
     sort: n,
-    isGuestDefault: n === 5,
+    isGuestDefault: n === 30,
   })
   priceTypes[n] = doc.id
 }
@@ -41,7 +41,7 @@ const tomatoes = await upsert('categories', { slug: { equals: 'tomaty' } }, { ti
 const groc = await upsert('categories', { slug: { equals: 'bakaleya' } }, { title: 'Бакалея', sort: 20 })
 
 const mk = (base: number) =>
-  [2, 3, 4, 5].map((n) => ({ priceType: priceTypes[n], value: Math.round(base * (1 + (n - 2) / 100) * 100) / 100 }))
+  [2, 3, 4, 5, 30].map((n) => ({ priceType: priceTypes[n], value: Math.round(base * (1 + (n - 2) / 100) * 100) / 100 }))
 
 const tomato = await upsert('products', { sku: { equals: 'DEMO-001' } }, {
   title: 'Томаты черри красные, 250 г',
@@ -78,7 +78,9 @@ await upsert('customers', { email: { equals: 'client@prodservis.local' } }, {
   status: 'active',
   priceType: priceTypes[4],
   group: net.id,
-  organizations: [{ title: 'ООО «Демо»', inn: '7700000000' }],
+  segment: 'horeca',
+  consent: { accepted: true },
+  organizations: [{ title: 'ООО «Демо»', inn: '7707083893' }],
 })
 
 const today = new Date()
@@ -93,6 +95,12 @@ await upsert('price-agreements', { title: { equals: 'Торги «Демо-ре�
   validFrom: monday.toISOString(),
   validTo: sunday.toISOString(),
   items: [{ product: tomato.id, price: 165 }],
+})
+
+await payload.updateGlobal({
+  slug: 'site-settings',
+  data: { guestPriceType: priceTypes[30], orderCutoff: '17:00' },
+  overrideAccess: true,
 })
 
 payload.logger.info('Демо-данные готовы')

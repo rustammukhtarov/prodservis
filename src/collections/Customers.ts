@@ -4,6 +4,8 @@ type FieldAccessConfig = { create: FieldAccess; update: FieldAccess }
 
 import { isStaff, salesAccess } from '../access'
 import { guid1C } from '../fields/common'
+import { SEGMENT_OPTIONS } from '../lib/segments'
+import { validateInn } from './SupplierApplications'
 
 /** Поля, которые клиент не может задать сам ни при регистрации, ни потом. */
 const staffWriteOnly: FieldAccessConfig = {
@@ -47,14 +49,14 @@ export const Customers: CollectionConfig = {
     { name: 'phone', label: 'Телефон', type: 'text' },
     {
       name: 'segment',
-      label: 'Тип сотрудничества',
+      label: 'Тип клиента',
       type: 'select',
+      required: true,
       defaultValue: 'horeca',
-      options: [
-        { label: 'Ресторан / кафе (HoReCa)', value: 'horeca' },
-        { label: 'Магазин', value: 'retail' },
-        { label: 'Крупный опт', value: 'wholesale' },
-      ],
+      options: SEGMENT_OPTIONS,
+      // Выбирается при регистрации; дальше меняет только сотрудник.
+      access: { update: ({ req: { user } }) => isStaff(user) },
+      admin: { position: 'sidebar' },
     },
     {
       name: 'status',
@@ -79,7 +81,7 @@ export const Customers: CollectionConfig = {
           type: 'row',
           fields: [
             { name: 'title', label: 'Название', type: 'text', required: true },
-            { name: 'inn', label: 'ИНН', type: 'text', required: true },
+            { name: 'inn', label: 'ИНН', type: 'text', required: true, validate: validateInn },
             { name: 'kpp', label: 'КПП', type: 'text' },
           ],
         },
@@ -124,6 +126,43 @@ export const Customers: CollectionConfig = {
         },
       ],
     },
+    {
+      name: 'consent',
+      label: 'Согласие на обработку персональных данных',
+      type: 'group',
+      access: { update: ({ req: { user } }) => isStaff(user) },
+      fields: [
+        {
+          name: 'accepted',
+          label: 'Согласие получено',
+          type: 'checkbox',
+          validate: (
+            value: unknown,
+            { req, operation }: { req: { user?: unknown; payloadAPI?: string }; operation?: string },
+          ) =>
+            operation === 'create' && req.payloadAPI !== 'local' && !isStaff(req.user as never) && value !== true
+              ? 'Нужно согласие на обработку персональных данных'
+              : true,
+        },
+        { name: 'acceptedAt', label: 'Дата согласия', type: 'date', admin: { readOnly: true } },
+      ],
+    },
     guid1C(false),
   ],
+  hooks: {
+    beforeChange: [
+      async ({ data, operation, req }) => {
+        // Сотрудник в админке и служебные скрипты (обмен с 1С, импорт) задают статус сами.
+        if (operation !== 'create' || isStaff(req.user) || req.payloadAPI === 'local') return data
+        // Самостоятельная регистрация: статус решает сервер, а не форма.
+        const settings = await req.payload.findGlobal({ slug: 'site-settings', req, depth: 0 })
+        const rules = (settings.segments as Record<string, { autoApprove?: boolean | null } | undefined>)?.[
+          data.segment
+        ]
+        data.status = rules?.autoApprove ? 'active' : 'pending'
+        data.consent = { ...(data.consent ?? {}), acceptedAt: new Date().toISOString() }
+        return data
+      },
+    ],
+  },
 }
