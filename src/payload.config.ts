@@ -6,6 +6,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { Buyers } from './collections/Buyers'
 import { Categories } from './collections/Categories'
 import { Documents } from './collections/Documents'
 import { SupplierApplications } from './collections/SupplierApplications'
@@ -39,6 +40,7 @@ export default buildConfig({
     PriceTypes,
     PriceAgreements,
     Customers,
+    Buyers,
     CustomerGroups,
     SupplierApplications,
     Orders,

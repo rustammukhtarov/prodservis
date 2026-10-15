@@ -74,16 +74,38 @@ await upsert('products', { sku: { equals: 'DEMO-002' } }, {
 const net = await upsert('customer-groups', { title: { equals: 'Сеть «Демо-рестораны»' } }, {
   title: 'Сеть «Демо-рестораны»',
 })
+const holding = await upsert('buyers', { inn: { equals: '7707083893' } }, {
+  title: 'ООО «Демо» (контрагент)',
+  inn: '7707083893',
+  kind: 'counterparty',
+  group: net.id,
+  priceType: priceTypes[4],
+  deliveryPoints: [{ title: 'Ресторан на Тверской', address: 'Москва, ул. Тверская, 1' }],
+})
+const branch = await upsert('buyers', { title: { equals: 'ООО «Демо-Арбат» (партнёр)' } }, {
+  title: 'ООО «Демо-Арбат» (партнёр)',
+  inn: '500100732259',
+  kind: 'partner',
+  parent: holding.id,
+  deliveryPoints: [{ title: 'Кафе на Арбате', address: 'Москва, ул. Арбат, 10' }],
+})
 await upsert('customers', { email: { equals: 'client@prodservis.local' } }, {
   email: 'client@prodservis.local',
   password: 'client12345',
   name: 'Демо-клиент',
   status: 'active',
-  priceType: priceTypes[4],
-  group: net.id,
   segment: 'horeca',
   consent: { accepted: true },
-  organizations: [{ title: 'ООО «Демо»', inn: '7707083893' }],
+  buyers: [holding.id, branch.id],
+})
+await upsert('customers', { email: { equals: 'home@prodservis.local' } }, {
+  email: 'home@prodservis.local',
+  password: 'home12345',
+  name: 'Демо-покупатель (физлицо)',
+  status: 'active',
+  segment: 'individual',
+  consent: { accepted: true },
+  addresses: [{ address: 'Москва, ул. Пример, 5' }],
 })
 
 const today = new Date()

@@ -2,7 +2,7 @@
  * Расчёт цены товара для клиента.
  *
  * Порядок (первое совпадение выигрывает):
- *   1. Индивидуальная цена клиента на товар, действующая на дату.
+ *   1. Индивидуальная цена покупателя (партнёра или его контрагента) на товар, действующая на дату.
  *   2. Цена торгов для сети клиента, действующая на дату.
  *   3. Цена по прайсу клиента (Прайс 2, 3, 4…).
  *   4. Цена по гостевому прайсу (клиент без прайса или не вошёл).
@@ -21,7 +21,8 @@ export interface BasePrice {
 export interface Agreement {
   id: ID
   kind: 'individual' | 'tender'
-  customerId?: ID | null
+  /** Покупатель (партнёр или контрагент), для которого заведены индивидуальные цены. */
+  buyerId?: ID | null
   groupId?: ID | null
   /** Начало действия (ISO-дата или дата-время). */
   validFrom: string
@@ -32,7 +33,11 @@ export interface Agreement {
 }
 
 export interface PriceContext {
-  customerId?: ID | null
+  /**
+   * Покупатель и его контрагент: [партнёр, контрагент].
+   * Индивидуальные цены партнёра важнее цен его контрагента.
+   */
+  buyerIds?: readonly ID[]
   groupId?: ID | null
   priceTypeId?: ID | null
   guestPriceTypeId?: ID | null
@@ -94,9 +99,9 @@ export function resolvePrice(
   const pid = String(productId)
   const active = agreements.filter((a) => isActiveOn(a, day))
 
-  if (ctx.customerId != null) {
+  for (const buyerId of ctx.buyerIds ?? []) {
     const individual = pickLatest(
-      active.filter((a) => a.kind === 'individual' && sameId(a.customerId, ctx.customerId)),
+      active.filter((a) => a.kind === 'individual' && sameId(a.buyerId, buyerId)),
       pid,
     )
     if (individual) {

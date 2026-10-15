@@ -12,7 +12,7 @@ export const PriceAgreements: CollectionConfig = {
   labels: { singular: 'Цены на период', plural: 'Торги и инд. цены' },
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'kind', 'group', 'customer', 'validFrom', 'validTo'],
+    defaultColumns: ['title', 'kind', 'group', 'buyer', 'validFrom', 'validTo'],
     group: 'Цены',
   },
   access: { read: staffOnly, create: salesAccess, update: salesAccess, delete: salesAccess },
@@ -26,7 +26,7 @@ export const PriceAgreements: CollectionConfig = {
       defaultValue: 'tender',
       options: [
         { label: 'Торги (на сеть)', value: 'tender' },
-        { label: 'Индивидуальные цены клиента', value: 'individual' },
+        { label: 'Индивидуальные цены покупателя', value: 'individual' },
       ],
     },
     {
@@ -39,13 +39,13 @@ export const PriceAgreements: CollectionConfig = {
         siblingData?.kind === 'tender' && !value ? 'Для торгов укажите сеть' : true,
     },
     {
-      name: 'customer',
-      label: 'Клиент',
+      name: 'buyer',
+      label: 'Покупатель (контрагент или партнёр)',
       type: 'relationship',
-      relationTo: 'customers',
+      relationTo: 'buyers',
       admin: { condition: (data) => data?.kind === 'individual' },
       validate: (value: unknown, { siblingData }: { siblingData: { kind?: string } }) =>
-        siblingData?.kind === 'individual' && !value ? 'Для индивидуальных цен укажите клиента' : true,
+        siblingData?.kind === 'individual' && !value ? 'Для индивидуальных цен укажите покупателя' : true,
     },
     {
       type: 'row',

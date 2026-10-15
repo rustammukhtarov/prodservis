@@ -31,7 +31,7 @@ describe('resolvePrice', () => {
   })
 
   it('клиент без торгов получает свой прайс', () => {
-    const r = resolvePrice(42, base, { date: monday, customerId: 1, priceTypeId: P4, guestPriceTypeId: P5 })
+    const r = resolvePrice(42, base, { date: monday, buyerIds: [1], priceTypeId: P4, guestPriceTypeId: P5 })
     expect(r).toMatchObject({ price: 102, source: 'price-type' })
   })
 
@@ -39,7 +39,7 @@ describe('resolvePrice', () => {
     const r = resolvePrice(
       42,
       base,
-      { date: monday, customerId: 1, groupId: 'net', priceTypeId: P4 },
+      { date: monday, buyerIds: [1], groupId: 'net', priceTypeId: P4 },
       [agreement({ kind: 'tender', groupId: 'net' })],
     )
     expect(r).toMatchObject({ price: 90, source: 'tender', validTo: '2026-10-25' })
@@ -49,10 +49,10 @@ describe('resolvePrice', () => {
     const r = resolvePrice(
       42,
       base,
-      { date: monday, customerId: 1, groupId: 'net', priceTypeId: P4 },
+      { date: monday, buyerIds: [1], groupId: 'net', priceTypeId: P4 },
       [
         agreement({ kind: 'tender', groupId: 'net' }),
-        agreement({ id: 'ind', kind: 'individual', customerId: 1, prices: new Map([['42', 85]]) }),
+        agreement({ id: 'ind', kind: 'individual', buyerId: 1, prices: new Map([['42', 85]]) }),
       ],
     )
     expect(r).toMatchObject({ price: 85, source: 'individual', agreementId: 'ind' })
@@ -62,7 +62,7 @@ describe('resolvePrice', () => {
     const r = resolvePrice(
       7,
       base,
-      { date: monday, customerId: 1, groupId: 'net', priceTypeId: P2 },
+      { date: monday, buyerIds: [1], groupId: 'net', priceTypeId: P2 },
       [agreement({ kind: 'tender', groupId: 'net' })],
     )
     expect(r).toMatchObject({ price: 100, source: 'price-type' })
@@ -72,14 +72,14 @@ describe('resolvePrice', () => {
     const r = resolvePrice(
       42,
       base,
-      { date: monday, customerId: 1, groupId: 'other', priceTypeId: P4 },
+      { date: monday, buyerIds: [1], groupId: 'other', priceTypeId: P4 },
       [agreement({ kind: 'tender', groupId: 'net' })],
     )
     expect(r?.source).toBe('price-type')
   })
 
   it('срок действия: последний день включительно, следующий — уже нет', () => {
-    const ctx = { customerId: 1, groupId: 'net', priceTypeId: P4 }
+    const ctx = { buyerIds: [1], groupId: 'net', priceTypeId: P4 }
     const list = [agreement({ kind: 'tender', groupId: 'net' })]
     expect(resolvePrice(42, base, { ...ctx, date: new Date('2026-10-25T23:30:00+03:00') }, list)?.source).toBe(
       'tender',
@@ -103,6 +103,21 @@ describe('resolvePrice', () => {
       ],
     )
     expect(r).toMatchObject({ price: 88, agreementId: 'new' })
+  })
+
+  it('индивидуальная цена партнёра важнее цены его контрагента', () => {
+    const r = resolvePrice(42, base, { date: monday, buyerIds: ['partner', 'counterparty'], priceTypeId: P4 }, [
+      agreement({ id: 'cp', kind: 'individual', buyerId: 'counterparty', prices: new Map([['42', 80]]) }),
+      agreement({ id: 'pt', kind: 'individual', buyerId: 'partner', prices: new Map([['42', 83]]) }),
+    ])
+    expect(r).toMatchObject({ price: 83, agreementId: 'pt' })
+  })
+
+  it('индивидуальная цена контрагента действует для его партнёра', () => {
+    const r = resolvePrice(42, base, { date: monday, buyerIds: ['partner', 'counterparty'], priceTypeId: P4 }, [
+      agreement({ id: 'cp', kind: 'individual', buyerId: 'counterparty', prices: new Map([['42', 80]]) }),
+    ])
+    expect(r).toMatchObject({ price: 80, source: 'individual' })
   })
 
   it('без цен возвращает null', () => {

@@ -74,6 +74,7 @@ export interface Config {
     'price-types': PriceType;
     'price-agreements': PriceAgreement;
     customers: Customer;
+    buyers: Buyer;
     'customer-groups': CustomerGroup;
     'supplier-applications': SupplierApplication;
     orders: Order;
@@ -94,6 +95,7 @@ export interface Config {
     'price-types': PriceTypesSelect<false> | PriceTypesSelect<true>;
     'price-agreements': PriceAgreementsSelect<false> | PriceAgreementsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
+    buyers: BuyersSelect<false> | BuyersSelect<true>;
     'customer-groups': CustomerGroupsSelect<false> | CustomerGroupsSelect<true>;
     'supplier-applications': SupplierApplicationsSelect<false> | SupplierApplicationsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
@@ -359,7 +361,7 @@ export interface PriceAgreement {
   title: string;
   kind: 'tender' | 'individual';
   group?: (number | null) | CustomerGroup;
-  customer?: (number | null) | Customer;
+  buyer?: (number | null) | Buyer;
   validFrom: string;
   validTo: string;
   items: {
@@ -391,60 +393,43 @@ export interface CustomerGroup {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers".
+ * via the `definition` "buyers".
  */
-export interface Customer {
+export interface Buyer {
   id: number;
-  name: string;
-  phone?: string | null;
-  segment: 'horeca' | 'retail' | 'wholesale' | 'individual';
-  status?: ('pending' | 'active' | 'blocked') | null;
-  organizations?:
+  title: string;
+  inn?: string | null;
+  kpp?: string | null;
+  kind?: ('counterparty' | 'partner') | null;
+  /**
+   * К какому контрагенту относится партнёр
+   */
+  parent?: (number | null) | Buyer;
+  deliveryPoints?:
     | {
-        title: string;
-        inn: string;
-        kpp?: string | null;
+        title?: string | null;
+        address: string;
+        comment?: string | null;
         guid1C?: string | null;
         id?: string | null;
       }[]
     | null;
-  addresses?:
-    | {
-        address: string;
-        comment?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  priceType?: (number | null) | PriceType;
+  /**
+   * Пусто — берётся у контрагента
+   */
   group?: (number | null) | CustomerGroup;
+  /**
+   * Пусто — берётся у контрагента
+   */
+  priceType?: (number | null) | PriceType;
   manager?: (number | null) | User;
-  consent?: {
-    accepted?: boolean | null;
-    acceptedAt?: string | null;
-  };
+  isActive?: boolean | null;
   /**
    * Заполняется обменом с 1С
    */
   guid1C?: string | null;
   updatedAt: string;
   createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  resetPasswordRequestedAt?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'customers';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -474,6 +459,67 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  name: string;
+  phone?: string | null;
+  segment: 'horeca' | 'retail' | 'wholesale' | 'individual';
+  status?: ('pending' | 'active' | 'blocked') | null;
+  /**
+   * Привязывает менеджер после проверки. Цены берутся от выбранного юрлица.
+   */
+  buyers?: (number | Buyer)[] | null;
+  /**
+   * Клиент вводит ИНН сам; менеджер находит это юрлицо в 1С и привязывает выше.
+   */
+  requestedOrgs?:
+    | {
+        inn: string;
+        title?: string | null;
+        kpp?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  addresses?:
+    | {
+        address: string;
+        comment?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  manager?: (number | null) | User;
+  consent?: {
+    accepted?: boolean | null;
+    acceptedAt?: string | null;
+  };
+  /**
+   * Заполняется обменом с 1С
+   */
+  guid1C?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'customers';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -522,9 +568,10 @@ export interface Order {
   id: number;
   number?: string | null;
   customer: number | Customer;
-  organizationInn?: string | null;
+  buyer?: (number | null) | Buyer;
   deliveryDate: string;
   address?: string | null;
+  deliveryPointGuid1C?: string | null;
   items: {
     product: number | Product;
     qty: number;
@@ -632,6 +679,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'customers';
         value: number | Customer;
+      } | null)
+    | ({
+        relationTo: 'buyers';
+        value: number | Buyer;
       } | null)
     | ({
         relationTo: 'customer-groups';
@@ -818,7 +869,7 @@ export interface PriceAgreementsSelect<T extends boolean = true> {
   title?: T;
   kind?: T;
   group?: T;
-  customer?: T;
+  buyer?: T;
   validFrom?: T;
   validTo?: T;
   items?:
@@ -841,13 +892,13 @@ export interface CustomersSelect<T extends boolean = true> {
   phone?: T;
   segment?: T;
   status?: T;
-  organizations?:
+  buyers?: T;
+  requestedOrgs?:
     | T
     | {
-        title?: T;
         inn?: T;
+        title?: T;
         kpp?: T;
-        guid1C?: T;
         id?: T;
       };
   addresses?:
@@ -857,8 +908,6 @@ export interface CustomersSelect<T extends boolean = true> {
         comment?: T;
         id?: T;
       };
-  priceType?: T;
-  group?: T;
   manager?: T;
   consent?:
     | T
@@ -884,6 +933,33 @@ export interface CustomersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "buyers_select".
+ */
+export interface BuyersSelect<T extends boolean = true> {
+  title?: T;
+  inn?: T;
+  kpp?: T;
+  kind?: T;
+  parent?: T;
+  deliveryPoints?:
+    | T
+    | {
+        title?: T;
+        address?: T;
+        comment?: T;
+        guid1C?: T;
+        id?: T;
+      };
+  group?: T;
+  priceType?: T;
+  manager?: T;
+  isActive?: T;
+  guid1C?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -922,9 +998,10 @@ export interface SupplierApplicationsSelect<T extends boolean = true> {
 export interface OrdersSelect<T extends boolean = true> {
   number?: T;
   customer?: T;
-  organizationInn?: T;
+  buyer?: T;
   deliveryDate?: T;
   address?: T;
+  deliveryPointGuid1C?: T;
   items?:
     | T
     | {

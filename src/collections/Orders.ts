@@ -27,7 +27,7 @@ export const Orders: CollectionConfig = {
     {
       type: 'row',
       fields: [
-        { name: 'organizationInn', label: 'ИНН покупателя', type: 'text' },
+        { name: 'buyer', label: 'Покупатель (юрлицо)', type: 'relationship', relationTo: 'buyers' },
         {
           name: 'deliveryDate',
           label: 'Дата доставки',
@@ -37,7 +37,13 @@ export const Orders: CollectionConfig = {
         },
       ],
     },
-    { name: 'address', label: 'Адрес доставки', type: 'text' },
+    {
+      type: 'row',
+      fields: [
+        { name: 'address', label: 'Адрес доставки', type: 'text' },
+        { name: 'deliveryPointGuid1C', label: 'ID точки доставки в 1С', type: 'text' },
+      ],
+    },
     {
       name: 'items',
       label: 'Состав',

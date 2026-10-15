@@ -19,7 +19,7 @@ export const Customers: CollectionConfig = {
   labels: { singular: 'Клиент', plural: 'Клиенты' },
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'email', 'priceType', 'group', 'status'],
+    defaultColumns: ['name', 'email', 'segment', 'buyers', 'status'],
     group: 'Клиенты',
     listSearchableFields: ['name', 'email', 'phone'],
   },
@@ -72,25 +72,35 @@ export const Customers: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
-      name: 'organizations',
-      label: 'Организации',
+      name: 'buyers',
+      label: 'Юрлица и партнёры, от имени которых заказывает',
+      type: 'relationship',
+      relationTo: 'buyers',
+      hasMany: true,
+      access: staffWriteOnly,
+      saveToJWT: true,
+      admin: { description: 'Привязывает менеджер после проверки. Цены берутся от выбранного юрлица.' },
+    },
+    {
+      name: 'requestedOrgs',
+      label: 'Организации, указанные клиентом',
       type: 'array',
       labels: { singular: 'Организация', plural: 'Организации' },
+      admin: { description: 'Клиент вводит ИНН сам; менеджер находит это юрлицо в 1С и привязывает выше.' },
       fields: [
         {
           type: 'row',
           fields: [
-            { name: 'title', label: 'Название', type: 'text', required: true },
             { name: 'inn', label: 'ИНН', type: 'text', required: true, validate: validateInn },
+            { name: 'title', label: 'Название', type: 'text' },
             { name: 'kpp', label: 'КПП', type: 'text' },
           ],
         },
-        { name: 'guid1C', label: 'ID контрагента в 1С', type: 'text', access: staffWriteOnly },
       ],
     },
     {
       name: 'addresses',
-      label: 'Адреса доставки',
+      label: 'Адреса доставки (для физлиц)',
       type: 'array',
       labels: { singular: 'Адрес', plural: 'Адреса' },
       fields: [
@@ -99,32 +109,12 @@ export const Customers: CollectionConfig = {
       ],
     },
     {
-      type: 'collapsible',
-      label: 'Условия (назначает менеджер или 1С)',
+      name: 'manager',
+      label: 'Персональный менеджер',
+      type: 'relationship',
+      relationTo: 'users',
+      access: staffWriteOnly,
       admin: { position: 'sidebar' },
-      fields: [
-        {
-          name: 'priceType',
-          label: 'Прайс',
-          type: 'relationship',
-          relationTo: 'price-types',
-          access: staffWriteOnly,
-        },
-        {
-          name: 'group',
-          label: 'Сеть',
-          type: 'relationship',
-          relationTo: 'customer-groups',
-          access: staffWriteOnly,
-        },
-        {
-          name: 'manager',
-          label: 'Персональный менеджер',
-          type: 'relationship',
-          relationTo: 'users',
-          access: staffWriteOnly,
-        },
-      ],
     },
     {
       name: 'consent',

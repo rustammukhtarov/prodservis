@@ -5,47 +5,68 @@ import { buildPriceContext } from '@/lib/pricing/priceContext'
 import { resolvePrice } from '@/lib/pricing/resolvePrice'
 import { validateInn } from '@/collections/SupplierApplications'
 
+const RETAIL = 25
 const settings = {
   guestPriceType: { id: 30 },
-  segments: { individual: { defaultPriceType: 25 }, horeca: { defaultPriceType: null } },
+  segments: { individual: { defaultPriceType: RETAIL }, horeca: { defaultPriceType: null } },
 }
 const base = [
+  { priceTypeId: 3, value: 101 },
   { priceTypeId: 4, value: 102 },
-  { priceTypeId: 25, value: 120 },
+  { priceTypeId: RETAIL, value: 120 },
   { priceTypeId: 30, value: 125 },
 ]
 const date = new Date('2026-10-19T10:00:00+03:00')
 
+// Контрагент (сеть 7, Прайс 3) и его партнёр без своих условий.
+const counterparty = { id: 100, group: 7, priceType: 3 }
+const partner = { id: 101, parent: counterparty }
+const restaurant = { id: 1, status: 'active', segment: 'horeca', buyers: [{ id: 101 }, 100] }
+
 describe('buildPriceContext', () => {
   it('гость видит Прайс 30', () => {
-    const ctx = buildPriceContext(null, settings, date)
-    expect(resolvePrice(1, base, ctx)).toMatchObject({ price: 125, source: 'guest' })
+    expect(resolvePrice(1, base, buildPriceContext(null, null, settings, date))).toMatchObject({
+      price: 125,
+      source: 'guest',
+    })
   })
 
-  it('клиент на проверке видит гостевой прайс, даже если прайс уже назначен', () => {
-    const ctx = buildPriceContext({ id: 7, status: 'pending', priceType: 4, segment: 'horeca' }, settings, date)
+  it('клиент на проверке видит гостевой прайс', () => {
+    const ctx = buildPriceContext({ ...restaurant, status: 'pending' }, partner, settings, date)
     expect(resolvePrice(1, base, ctx)?.price).toBe(125)
   })
 
-  it('активный ресторан видит свой прайс', () => {
-    const ctx = buildPriceContext({ id: 7, status: 'active', priceType: { id: 4 }, segment: 'horeca' }, settings, date)
-    expect(resolvePrice(1, base, ctx)).toMatchObject({ price: 102, source: 'price-type' })
+  it('партнёр без своих условий берёт сеть и прайс у контрагента', () => {
+    const ctx = buildPriceContext(restaurant, partner, settings, date)
+    expect(ctx).toMatchObject({ buyerIds: [101, 100], groupId: 7, priceTypeId: 3 })
+    expect(resolvePrice(1, base, ctx)).toMatchObject({ price: 101, source: 'price-type' })
   })
 
-  it('физлицо без своего прайса получает прайс своего типа', () => {
-    const ctx = buildPriceContext({ id: 8, status: 'active', segment: 'individual' }, settings, date)
-    expect(resolvePrice(1, base, ctx)?.price).toBe(120)
+  it('свой прайс партнёра важнее прайса контрагента', () => {
+    const ctx = buildPriceContext(restaurant, { ...partner, priceType: { id: 4 } }, settings, date)
+    expect(ctx.priceTypeId).toBe(4)
   })
 
-  it('заблокированный клиент не получает торги своей сети', () => {
-    const ctx = buildPriceContext({ id: 9, status: 'blocked', group: 3, priceType: 4 }, settings, date)
-    expect(ctx.groupId).toBeUndefined()
+  it('чужое юрлицо — только гостевые цены', () => {
+    const ctx = buildPriceContext(restaurant, { id: 555, priceType: 3 }, settings, date)
+    expect(ctx.buyerIds).toBeUndefined()
+    expect(resolvePrice(1, base, ctx)?.price).toBe(125)
+  })
+
+  it('неактивное в 1С юрлицо — только гостевые цены', () => {
+    const ctx = buildPriceContext(restaurant, { ...counterparty, isActive: false }, settings, date)
+    expect(resolvePrice(1, base, ctx)?.source).toBe('guest')
+  })
+
+  it('физлицо получает розничный прайс', () => {
+    const ctx = buildPriceContext({ id: 8, status: 'active', segment: 'individual' }, null, settings, date)
+    expect(resolvePrice(1, base, ctx)).toMatchObject({ price: 120, source: 'price-type' })
   })
 })
 
 describe('validateInn', () => {
   it('принимает корректные ИНН юрлица и ИП', () => {
-    expect(validateInn('7707083893')).toBe(true) // ПАО Сбербанк
+    expect(validateInn('7707083893')).toBe(true)
     expect(validateInn('500100732259')).toBe(true)
   })
   it('отклоняет ошибки', () => {
