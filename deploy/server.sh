@@ -84,8 +84,8 @@ IP=$(hostname -I | awk '{print $1}')
 if [ -n "${SITE_DOMAIN:-}" ]; then
   DOMAIN="$SITE_DOMAIN"; URL="https://$SITE_DOMAIN"; CADDY_TLS=""
 else
-  # Без домена: http://IP и https://IP с самоподписанным сертификатом (для сетей, где открыт только 443).
-  DOMAIN="http://, https://$IP"; URL="http://$IP"; CADDY_TLS="tls internal"
+  # Без домена — только http://IP (HTTPS по голому IP браузеры и Caddy толком не поддерживают).
+  DOMAIN=":80"; URL="http://$IP"; CADDY_TLS=""
 fi
 sed -i '/^SITE_DOMAIN=/d;/^NEXT_PUBLIC_SERVER_URL=/d;/^CADDY_TLS=/d' .env
 echo "SITE_DOMAIN=$DOMAIN" >> .env
