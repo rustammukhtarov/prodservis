@@ -25,10 +25,6 @@ jobs:
           script: |
             enc() { sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g'; }
             cd ~/prodservis 2>/dev/null
-            echo "::notice title=Система::$( { uptime; free -m; df -h /; hostname -I; } 2>&1 | enc)"
-            echo "::notice title=Контейнеры::$(docker compose -f docker-compose.prod.yml ps 2>&1 | enc)"
-            echo "::notice title=Порты и брандмауэр::$( { ss -ltn; ufw status; } 2>&1 | enc)"
-            echo "::notice title=Локально::$( for p in / /admin; do echo "$p $(curl -s -o /dev/null -m 15 -w '%{http_code} redirect=%{redirect_url}' http://127.0.0.1$p)"; done | enc)"
-            echo "::notice title=Caddy::$(docker compose -f docker-compose.prod.yml logs --tail 25 caddy 2>&1 | enc)"
-            echo "::notice title=App::$(docker compose -f docker-compose.prod.yml logs --tail 40 app 2>&1 | enc)"
-            echo "::notice title=env (без секретов)::$(grep -E '^(SITE_DOMAIN|NEXT_PUBLIC_SERVER_URL)=' .env | enc)"
+            echo "::notice title=cloud-init::$( { cloud-init status --long; ls /root/prodservis-ready.txt; tail -n 15 /var/log/cloud-init-output.log; } 2>&1 | enc)"
+            echo "::notice title=SSH и fail2ban::$( { sshd -T 2>/dev/null | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractive)'; systemctl is-active fail2ban; ls /etc/ssh/sshd_config.d/; } 2>&1 | enc)"
+            echo "::notice title=Обращения (последние 20)::$(docker compose -f docker-compose.prod.yml logs --since 30m caddy 2>&1 | grep -c '"request"' | enc)"
