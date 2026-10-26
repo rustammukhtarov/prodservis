@@ -1,0 +1,65 @@
+#cloud-config
+# Продсервис: первоначальная настройка сервера (Ubuntu 24.04, Timeweb Cloud).
+# Выполняется один раз при создании сервера. Лог: /var/log/cloud-init-output.log
+
+timezone: Europe/Moscow
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - openssl
+  - curl
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+
+# Вход только по ключу.
+ssh_pwauth: false
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/90-prodservis.conf
+    permissions: '0644'
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin prohibit-password
+  - path: /etc/fail2ban/jail.d/sshd.local
+    permissions: '0644'
+    content: |
+      [sshd]
+      enabled = true
+      maxretry = 5
+      bantime = 1h
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    permissions: '0644'
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+runcmd:
+  # Ключ выкладки (открытый) — на случай, если его не добавили в панели.
+  - mkdir -p /root/.ssh && chmod 700 /root/.ssh
+  - grep -q prodservis-deploy /root/.ssh/authorized_keys 2>/dev/null || echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIXAs0ZCt+3zG/+Wi4S2Ee0BW1JdPgOvQ3fdyHQxTSKU prodservis-deploy' >> /root/.ssh/authorized_keys
+  - chmod 600 /root/.ssh/authorized_keys
+  # Файл подкачки 4 ГБ: сборке сайта нужно больше памяти, чем есть на небольшом сервере.
+  - '[ -f /swapfile ] || (fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile)'
+  - swapon /swapfile || true
+  - grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  # Брандмауэр: открыты только SSH и сайт.
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+  # Службы.
+  - systemctl enable --now docker fail2ban
+  - systemctl restart ssh
+  # Заранее скачиваем базовые образы, чтобы первая выкладка прошла быстрее.
+  - docker pull mirror.gcr.io/library/node:22-alpine || true
+  - docker pull mirror.gcr.io/library/postgres:16-alpine || true
+  - docker pull mirror.gcr.io/library/caddy:2-alpine || true
+  - echo "Сервер готов к выкладке Продсервиса" > /root/prodservis-ready.txt
+
+final_message: 'Продсервис: сервер настроен за $UPTIME секунд'
