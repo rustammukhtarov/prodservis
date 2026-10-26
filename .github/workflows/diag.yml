@@ -1,0 +1,34 @@
+name: Диагностика сервера
+on:
+  push:
+    branches: [diag]
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Снаружи
+        env: { HOST: "${{ secrets.DEPLOY_HOST }}" }
+        run: |
+          out=""
+          for p in / /admin /admin/create-first-user; do
+            r=$(curl -s -o /dev/null -m 20 -w '%{http_code} %{time_total}s redirect=%{redirect_url}' "http://$HOST$p" 2>&1 || true)
+            out="$out$p → $r%0A"
+          done
+          r=$(curl -s -o /dev/null -m 10 -w '%{http_code}' "https://$HOST/" 2>&1 || echo fail); out="${out}https:// → $r%0A"
+          echo "::notice title=Снаружи::$out"
+      - name: На сервере
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER || 'root' }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            enc() { sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g'; }
+            cd ~/prodservis 2>/dev/null
+            echo "::notice title=Система::$( { uptime; free -m; df -h /; hostname -I; } 2>&1 | enc)"
+            echo "::notice title=Контейнеры::$(docker compose -f docker-compose.prod.yml ps 2>&1 | enc)"
+            echo "::notice title=Порты и брандмауэр::$( { ss -ltn; ufw status; } 2>&1 | enc)"
+            echo "::notice title=Локально::$( for p in / /admin; do echo "$p $(curl -s -o /dev/null -m 15 -w '%{http_code} redirect=%{redirect_url}' http://127.0.0.1$p)"; done | enc)"
+            echo "::notice title=Caddy::$(docker compose -f docker-compose.prod.yml logs --tail 25 caddy 2>&1 | enc)"
+            echo "::notice title=App::$(docker compose -f docker-compose.prod.yml logs --tail 40 app 2>&1 | enc)"
+            echo "::notice title=env (без секретов)::$(grep -E '^(SITE_DOMAIN|NEXT_PUBLIC_SERVER_URL)=' .env | enc)"
