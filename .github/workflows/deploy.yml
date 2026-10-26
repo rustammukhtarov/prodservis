@@ -51,7 +51,7 @@ jobs:
 
       - name: Упаковка кода
         if: env.HOST != ''
-        run: tar --exclude=.git --exclude=site.tgz -czf site.tgz .
+        run: tar --exclude=.git -czf "$RUNNER_TEMP/site.tgz" . && mv "$RUNNER_TEMP/site.tgz" site.tgz
 
       - name: Копирование на сервер
         if: env.HOST != ''
