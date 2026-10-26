@@ -3,6 +3,21 @@
 # Код приходит архивом /tmp/prodservis-release/site.tgz; .env и данные (тома Docker) сохраняются.
 set -euo pipefail
 
+# Полный журнал — на сервере; при ошибке хвост журнала уходит в отчёт GitHub Actions (аннотация).
+LOG=/root/prodservis-deploy.log
+: > "$LOG"
+exec > >(tee -a "$LOG") 2>&1
+report_failure() {
+  local code=$?
+  sleep 1
+  {
+    [ -d "$HOME/prodservis" ] && cd "$HOME/prodservis" && docker compose -f docker-compose.prod.yml ps 2>/dev/null
+    [ -d "$HOME/prodservis" ] && docker compose -f docker-compose.prod.yml logs --tail 30 app 2>/dev/null
+  } >> "$LOG" 2>&1 || true
+  echo "::error title=Выкладка не удалась (код $code)::$(tail -n 60 "$LOG" | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
+}
+trap report_failure ERR
+
 APP_DIR="$HOME/prodservis"
 RELEASE=/tmp/prodservis-release/site.tgz
 export DEBIAN_FRONTEND=noninteractive
