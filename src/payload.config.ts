@@ -64,4 +64,14 @@ export default buildConfig({
   }),
   sharp,
   plugins: [],
+  // Если на стенде нет ни одного администратора, им становится самый первый сотрудник.
+  onInit: async (payload) => {
+    const admins = await payload.count({ collection: 'users', where: { roles: { contains: 'admin' } }, overrideAccess: true })
+    if (admins.totalDocs > 0) return
+    const first = await payload.find({ collection: 'users', sort: 'createdAt', limit: 1, overrideAccess: true })
+    const user = first.docs[0]
+    if (!user) return
+    await payload.update({ collection: 'users', id: user.id, data: { roles: ['admin'] }, overrideAccess: true })
+    payload.logger.info(`Сотрудник ${user.email} назначен администратором`)
+  },
 })

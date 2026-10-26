@@ -11,7 +11,21 @@ export const Users: CollectionConfig = {
     defaultColumns: ['name', 'email', 'roles'],
     group: 'Настройки',
   },
-  auth: true,
+  auth: {
+    // После 5 неверных паролей вход блокируется на 10 минут (защита от подбора).
+    maxLoginAttempts: 5,
+    lockTime: 10 * 60 * 1000,
+  },
+  hooks: {
+    beforeChange: [
+      // Самый первый сотрудник (форма «Создать первого пользователя») — всегда администратор.
+      async ({ data, operation, req }) => {
+        if (operation !== 'create') return data
+        const { totalDocs } = await req.payload.count({ collection: 'users', overrideAccess: true, req })
+        return totalDocs === 0 ? { ...data, roles: ['admin'] } : data
+      },
+    ],
+  },
   access: {
     admin: ({ req: { user } }) => isStaff(user),
     read: ({ req: { user } }) => isStaff(user),
