@@ -78,3 +78,18 @@ jobs:
             set -e
             tar -xzf /tmp/prodservis-release/site.tgz -C /tmp/prodservis-release ./deploy/server.sh
             SITE_DOMAIN="$SITE_DOMAIN" bash /tmp/prodservis-release/deploy/server.sh
+
+      - name: Проверка снаружи
+        if: env.HOST != ''
+        env:
+          SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
+        run: |
+          if [ -n "$SITE_DOMAIN" ]; then BASE="https://$SITE_DOMAIN"; else BASE="http://$HOST"; fi
+          ok=1
+          for path in / /admin /api/globals/site-settings; do
+            code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "$BASE$path" || echo 000)
+            echo "$path → $code"
+            report="$report $path=$code"
+            case "$code" in 2*|3*) ;; *) ok=0 ;; esac
+          done
+          if [ $ok = 1 ]; then echo "::notice title=Сайт доступен снаружи::$report"; else echo "::error title=Сайт снаружи недоступен::$report"; exit 1; fi
