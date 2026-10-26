@@ -27,9 +27,15 @@ import { migrations } from './migrations'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+// Адрес сайта берётся при запуске (SERVER_URL), а не при сборке: один образ подходит для любого сервера.
+const siteURL = process.env.SERVER_URL || process.env.NEXT_PUBLIC_SERVER_URL || ''
+// По голому http (тестовый стенд по IP) браузер не присылает заголовки Sec-Fetch-*, и Payload,
+// сверяя адрес сайта, не принимает cookie входа — админка снова и снова показывает форму входа.
+// Поэтому адрес задаём только для https и localhost; от подделки запросов защищает cookie SameSite=Lax.
+const isPlainHttp = siteURL.startsWith('http://') && !/^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(siteURL)
+
 export default buildConfig({
-  // Адрес сайта берётся при запуске (SERVER_URL), а не при сборке: один образ подходит для любого сервера.
-  serverURL: process.env.SERVER_URL || process.env.NEXT_PUBLIC_SERVER_URL || '',
+  serverURL: isPlainHttp ? '' : siteURL,
   admin: {
     user: Users.slug,
     meta: { titleSuffix: ' — Продсервис' },
