@@ -80,7 +80,9 @@ if [ ! -f .env ]; then
   chmod 600 .env
 fi
 # Домен и адрес сайта — из настроек выкладки; без домена сайт работает по http://IP.
-IP=$(hostname -I | awk '{print $1}')
+# Внешний адрес передаёт выкладка (секрет DEPLOY_HOST): hostname -I может вернуть внутренний адрес,
+# и тогда админка не пускает (вход «сбрасывается»: адрес в настройках не совпадает с адресом в браузере).
+IP="${PUBLIC_HOST:-$(hostname -I | awk '{print $1}')}"
 if [ -n "${SITE_DOMAIN:-}" ]; then
   DOMAIN="$SITE_DOMAIN"; URL="https://$SITE_DOMAIN"; CADDY_TLS=""
 else
@@ -106,6 +108,7 @@ for i in $(seq 1 60); do
   if curl -fsS -o /dev/null "http://127.0.0.1/api/globals/site-settings" -H "Host: ${SITE_DOMAIN:-$IP}" 2>/dev/null \
     || docker compose -f docker-compose.prod.yml exec -T app wget -qO- http://127.0.0.1:3000/api/globals/site-settings >/dev/null 2>&1; then
     log "Сайт работает: $URL  (админка: $URL/admin)"
+    echo "::notice title=Адрес сайта в настройках::$URL"
     rm -rf "$APP_DIR.old" /tmp/prodservis-release
     exit 0
   fi

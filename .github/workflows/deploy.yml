@@ -91,16 +91,17 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
+          PUBLIC_HOST: ${{ secrets.DEPLOY_HOST }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER || 'root' }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: SITE_DOMAIN
+          envs: SITE_DOMAIN,PUBLIC_HOST
           command_timeout: 40m
           script: |
             set -e
             tar -xzf /tmp/prodservis-release/site.tgz -C /tmp/prodservis-release deploy/server.sh
-            SITE_DOMAIN="$SITE_DOMAIN" bash /tmp/prodservis-release/deploy/server.sh
+            SITE_DOMAIN="$SITE_DOMAIN" PUBLIC_HOST="$PUBLIC_HOST" bash /tmp/prodservis-release/deploy/server.sh
 
       - name: Проверка снаружи
         if: env.HOST != ''
