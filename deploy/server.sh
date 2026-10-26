@@ -52,7 +52,7 @@ if ! ufw status | grep -q 'Status: active'; then
   ufw --force enable
 fi
 
-# 2. Файл подкачки: сборке сайта нужно больше памяти, чем есть на небольшом сервере.
+# 2. Файл подкачки — запас памяти на небольшом сервере.
 if ! swapon --show | grep -q .; then
   log "Создаю файл подкачки 4 ГБ"
   fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
@@ -94,9 +94,11 @@ echo "CADDY_TLS=$CADDY_TLS" >> .env
 # Переменные окружения важнее .env, поэтому выставляем их явно (пустой SITE_DOMAIN из выкладки иначе перекроет файл).
 export SITE_DOMAIN="$DOMAIN" NEXT_PUBLIC_SERVER_URL="$URL" CADDY_TLS="$CADDY_TLS"
 
-# 5. Сборка и запуск. Миграции базы применяются при старте сайта.
-log "Собираю и запускаю ($URL)"
-docker compose -f docker-compose.prod.yml up -d --build
+# 5. Запуск готового образа (собран в GitHub Actions). Миграции базы применяются при старте сайта.
+log "Загружаю образ сайта"
+docker load -i /tmp/prodservis-release/image.tgz
+log "Запускаю ($URL)"
+docker compose -f docker-compose.prod.yml up -d --no-build --remove-orphans
 docker image prune -f >/dev/null
 
 log "Жду ответа сайта"

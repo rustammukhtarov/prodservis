@@ -38,8 +38,20 @@ jobs:
             docker run --rm -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" -e SITE_DOMAIN="${mode%%|*}" -e CADDY_TLS="${mode#*|}" \
               mirror.gcr.io/library/caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
           done
-      - name: Сборка Docker-образа (проверка, без публикации)
-        run: docker build --build-arg NEXT_PUBLIC_SERVER_URL=https://example.ru -t prodservis:ci .
+      - name: Сборка Docker-образа
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
+        run: |
+          if [ -n "$SITE_DOMAIN" ]; then URL="https://$SITE_DOMAIN"; elif [ -n "$HOST" ]; then URL="http://$HOST"; else URL="https://example.ru"; fi
+          docker build --build-arg NEXT_PUBLIC_SERVER_URL="$URL" -t prodservis-app:latest .
+          docker save prodservis-app:latest | gzip -1 > image.tgz
+          ls -lh image.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image
+          path: image.tgz
+          retention-days: 3
 
   deploy:
     needs: [check, docker]
@@ -55,9 +67,14 @@ jobs:
       - uses: actions/checkout@v4
         if: env.HOST != ''
 
-      - name: Упаковка кода
+      - uses: actions/download-artifact@v4
         if: env.HOST != ''
-        run: tar --exclude=.git -czf "$RUNNER_TEMP/site.tgz" . && mv "$RUNNER_TEMP/site.tgz" site.tgz
+        with:
+          name: image
+
+      - name: Упаковка файлов запуска
+        if: env.HOST != ''
+        run: tar -czf site.tgz docker-compose.prod.yml Caddyfile deploy .env.example
 
       - name: Копирование на сервер
         if: env.HOST != ''
@@ -66,7 +83,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER || 'root' }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: site.tgz
+          source: site.tgz,image.tgz
           target: /tmp/prodservis-release
 
       - name: Установка и запуск
@@ -82,7 +99,7 @@ jobs:
           command_timeout: 40m
           script: |
             set -e
-            tar -xzf /tmp/prodservis-release/site.tgz -C /tmp/prodservis-release ./deploy/server.sh
+            tar -xzf /tmp/prodservis-release/site.tgz -C /tmp/prodservis-release deploy/server.sh
             SITE_DOMAIN="$SITE_DOMAIN" bash /tmp/prodservis-release/deploy/server.sh
 
       - name: Проверка снаружи

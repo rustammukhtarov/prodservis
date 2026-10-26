@@ -28,7 +28,8 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
-  serverURL: process.env.NEXT_PUBLIC_SERVER_URL || '',
+  // Адрес сайта берётся при запуске (SERVER_URL), а не при сборке: один образ подходит для любого сервера.
+  serverURL: process.env.SERVER_URL || process.env.NEXT_PUBLIC_SERVER_URL || '',
   admin: {
     user: Users.slug,
     meta: { titleSuffix: ' — Продсервис' },

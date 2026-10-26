@@ -7,6 +7,8 @@ const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
+  // Компактная сборка для Docker: в образ попадает только нужное для запуска.
+  output: 'standalone',
   images: {
     localPatterns: [
       {

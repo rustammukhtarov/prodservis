@@ -17,6 +17,8 @@ services:
       retries: 20
 
   app:
+    # Образ собирается в GitHub Actions и привозится на сервер готовым (docker load).
+    image: prodservis-app:latest
     build:
       context: .
       args:
@@ -29,6 +31,7 @@ services:
       DATABASE_URL: postgres://prodservis:${POSTGRES_PASSWORD}@db:5432/prodservis
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?Задайте PAYLOAD_SECRET в .env}
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+      SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
     volumes:
       - media:/app/media
       - private-uploads:/app/private-uploads
