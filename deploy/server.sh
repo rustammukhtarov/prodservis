@@ -65,6 +65,8 @@ if [ -n "${SITE_DOMAIN:-}" ]; then DOMAIN="$SITE_DOMAIN"; URL="https://$SITE_DOM
 sed -i '/^SITE_DOMAIN=/d;/^NEXT_PUBLIC_SERVER_URL=/d' .env
 echo "SITE_DOMAIN=$DOMAIN" >> .env
 echo "NEXT_PUBLIC_SERVER_URL=$URL" >> .env
+# Переменные окружения важнее .env, поэтому выставляем их явно (пустой SITE_DOMAIN из выкладки иначе перекроет файл).
+export SITE_DOMAIN="$DOMAIN" NEXT_PUBLIC_SERVER_URL="$URL"
 
 # 5. Сборка и запуск. Миграции базы применяются при старте сайта.
 log "Собираю и запускаю ($URL)"
