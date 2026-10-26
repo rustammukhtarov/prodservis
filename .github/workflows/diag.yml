@@ -18,6 +18,32 @@ jobs:
           echo "::notice title=Снаружи::$out"
           echo "::notice title=Адрес из секрета (через пробелы)::$(echo "$HOST" | sed 's/./& /g')"
           echo "::notice title=Где находится адрес::$(curl -s -m 10 "https://ipinfo.io/$HOST/json" | tr -d '\n' )"
+      - name: Реестр блокировок и проверка из России
+        env: { HOST: "${{ secrets.DEPLOY_HOST }}" }
+        run: |
+          code=$(curl -s -m 60 -o ips.json -w '%{http_code}' https://reestr.rublacklist.net/api/v3/ips/ || echo 000)
+          res=$(python3 -c "
+          import json,ipaddress,sys
+          ip=ipaddress.ip_address('$HOST')
+          try: d=json.load(open('ips.json'))
+          except Exception as e: print('реестр не прочитан:',e); sys.exit()
+          hits=[x for x in d if ip in ipaddress.ip_network(x.strip(),strict=False)] if d else []
+          print('записей',len(d),'совпадения:',hits[:5] if hits else 'нет')
+          " 2>&1 | sed 's/'"$HOST"'/IP/g')
+          echo "::notice title=Реестр РКН (код $code)::$res"
+          id=$(curl -s -m 30 -H 'Accept: application/json' "https://check-host.net/check-tcp?host=$HOST:80&max_nodes=60" | python3 -c "import sys,json;print(json.load(sys.stdin).get('request_id',''))" 2>/dev/null)
+          sleep 25
+          res=$(curl -s -m 30 -H 'Accept: application/json' "https://check-host.net/check-result/$id")
+          nodes=$(curl -s -m 30 -H 'Accept: application/json' https://check-host.net/nodes/hosts)
+          out=$(python3 -c "
+          import json,sys
+          r=json.loads(sys.argv[1] or '{}'); n=json.loads(sys.argv[2] or '{}').get('nodes',{})
+          for k,v in sorted(r.items(), key=lambda kv: n.get(kv[0],{}).get('location',[''])[0]):
+              loc=n.get(k,{}).get('location',['?','?','?'])
+              ok = 'OK' if (v and isinstance(v,list) and v[0] and 'time' in v[0]) else ('ошибка: '+str(v)[:60] if v else 'нет ответа')
+              print(loc[0], loc[2] if len(loc)>2 else '', '-', ok)
+          " "$res" "$nodes" 2>&1 | sed 's/'"$HOST"'/IP/g' | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+          echo "::notice title=Доступность порта 80 по странам::$out"
       - name: На сервере
         uses: appleboy/ssh-action@v1.2.0
         with:
