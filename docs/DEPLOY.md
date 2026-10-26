@@ -20,3 +20,6 @@
 ## Переезд на свой сервер
 Старый сервер: `cd ~/prodservis && docker compose -f docker-compose.prod.yml exec -T db pg_dump -U prodservis prodservis > backup.sql`, плюс тома `media`, `private-uploads`.
 Новый сервер: поменять секреты `DEPLOY_HOST`/`SITE_DOMAIN`, запустить выкладку, восстановить дамп и файлы.
+
+## Тестовый стенд
+- Сервер Timeweb Cloud, IP 201.24.52.248 (адрес сайта: http://201.24.52.248, админка: /admin).
