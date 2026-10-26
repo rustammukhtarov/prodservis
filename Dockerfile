@@ -1,12 +1,17 @@
 # Продсервис: сборка и запуск сайта (Next.js + Payload) в контейнере.
 # Образы берутся с зеркала Google: Docker Hub часто недоступен с российских серверов.
 FROM mirror.gcr.io/library/node:22-alpine AS base
-RUN apk add --no-cache libc6-compat && corepack enable
+# pnpm скачивается один раз в общий слой образа; дальше сеть для него не нужна.
+ENV COREPACK_HOME=/usr/local/share/corepack
+RUN apk add --no-cache libc6-compat && corepack enable && \
+    for i in 1 2 3 4 5; do corepack prepare pnpm@10.28.0 --activate && break || sleep 10; done && \
+    chmod -R a+rX /usr/local/share/corepack
+ENV COREPACK_ENABLE_NETWORK=0
 WORKDIR /app
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --config.fetch-retries=5 --config.fetch-timeout=120000
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -25,4 +30,5 @@ COPY --from=builder --chown=app:app /app ./
 RUN mkdir -p media private-uploads private-imports && chown -R app:app media private-uploads private-imports
 USER app
 EXPOSE 3000
-CMD ["pnpm", "start"]
+ENV NODE_OPTIONS=--no-deprecation
+CMD ["node_modules/.bin/next", "start"]
