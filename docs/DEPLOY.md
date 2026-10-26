@@ -1,30 +1,22 @@
 # Выкладка на сервер
 
-Один и тот же порядок для арендованного VPS (тестовый стенд) и для своего сервера.
+Выкладку делает GitHub Actions при каждом изменении ветки `main`. Сервер настраивается сам при первой выкладке.
 
-## 1. Сервер
-- Ubuntu 24.04, от 2 ядер и 4 ГБ памяти для теста (для рабочего — 4 ядра, 8 ГБ, SSD от 200 ГБ).
-- Домен (поддомен) направлен A-записью на IP сервера; открыты порты 80 и 443.
-- Установлены Docker и git: `curl -fsSL https://get.docker.com | sh`.
+## Один раз
+1. Сервер: Ubuntu 24.04, от 2 ядер / 4 ГБ / 40 ГБ. При создании добавить **открытый** SSH-ключ (`ключи/открытый_ключ_для_хостинга.txt`).
+2. GitHub → репозиторий → Settings → Secrets and variables → Actions → New repository secret:
+   - `DEPLOY_HOST` — IP-адрес сервера;
+   - `DEPLOY_SSH_KEY` — всё содержимое `ключи/ЗАКРЫТЫЙ_ключ_для_GitHub.txt` (после вставки файл удалить);
+   - `SITE_DOMAIN` — например `test.prodmsk.ru` (необязательно; без него сайт открывается по `http://IP`).
+3. Для домена: A-запись `test` → IP сервера.
+4. Actions → «Проверка и выкладка» → Run workflow (или любое изменение в `main`).
 
-## 2. Первый запуск
-```bash
-git clone git@github.com:rustammukhtarov/prodservis.git ~/prodservis   # через deploy key
-cd ~/prodservis
-cp .env.example .env    # заполнить POSTGRES_PASSWORD, PAYLOAD_SECRET, SITE_DOMAIN, NEXT_PUBLIC_SERVER_URL
-docker compose -f docker-compose.prod.yml up -d --build
-```
-Схема базы создаётся миграциями при запуске. Первый вход в админку `https://<домен>/admin` предложит создать администратора.
+Первая выкладка: ставит Docker, создаёт подкачку 4 ГБ и `.env` со случайными паролями (`~/prodservis/.env`, на сервере), собирает и запускает сайт.
+Затем в браузере `<адрес>/admin` — создать первого администратора.
 
-## 3. Автовыкладка из GitHub
-В репозитории: Settings → Secrets and variables → Actions:
-- секреты `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`;
-- переменная `DEPLOY_ENABLED` = `true`.
-После этого каждое изменение в `main` проверяется и выкладывается само.
+## Тестовые данные
+Админка → «Обмен» → «Импорт из Excel» → `docs/Продсервис_импорт_тестовые_данные.xlsx`.
 
-## 4. Тестовые данные
-Админка → «Обмен» → «Импорт из Excel» → загрузить `docs/Продсервис_импорт_тестовые_данные.xlsx`.
-
-## 5. Переезд на свой сервер
-`docker compose exec db pg_dump -U prodservis prodservis > backup.sql` + копия томов `media`, `private-uploads`;
-на новом сервере — шаги 1–2, затем восстановление дампа и файлов.
+## Переезд на свой сервер
+Старый сервер: `cd ~/prodservis && docker compose -f docker-compose.prod.yml exec -T db pg_dump -U prodservis prodservis > backup.sql`, плюс тома `media`, `private-uploads`.
+Новый сервер: поменять секреты `DEPLOY_HOST`/`SITE_DOMAIN`, запустить выкладку, восстановить дамп и файлы.

@@ -1,7 +1,12 @@
-# Проверка и выкладка на тестовый стенд при каждом изменении ветки main.
-# Секреты репозитория (Settings → Secrets and variables → Actions):
-#   DEPLOY_HOST — адрес сервера, DEPLOY_USER — пользователь, DEPLOY_SSH_KEY — закрытый SSH-ключ.
-# Пока секреты не заданы, выполняется только проверка (тесты и типы).
+# Проверка и выкладка на сервер при каждом изменении ветки main.
+#
+# Секреты репозитория (Settings → Secrets and variables → Actions → New repository secret):
+#   DEPLOY_HOST     — IP-адрес сервера (обязательно; пока не задан — выкладки нет, только проверка)
+#   DEPLOY_SSH_KEY  — закрытый SSH-ключ (обязательно)
+#   DEPLOY_USER     — пользователь на сервере (необязательно, по умолчанию root)
+#   SITE_DOMAIN     — домен стенда, например test.prodmsk.ru (необязательно; без него сайт работает по http://IP)
+#
+# Первая выкладка сама ставит Docker, создаёт файл подкачки и .env со случайными паролями.
 name: Проверка и выкладка
 
 on:
@@ -33,19 +38,43 @@ jobs:
   deploy:
     needs: [check, docker]
     runs-on: ubuntu-latest
-    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     concurrency: deploy
+    env:
+      HOST: ${{ secrets.DEPLOY_HOST }}
     steps:
-      - name: Выкладка на сервер
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Выкладка не настроена
+        if: env.HOST == ''
+        run: echo "Секрет DEPLOY_HOST не задан — выкладка пропущена."
+
+      - uses: actions/checkout@v4
+        if: env.HOST != ''
+
+      - name: Упаковка кода
+        if: env.HOST != ''
+        run: tar --exclude=.git --exclude=site.tgz -czf site.tgz .
+
+      - name: Копирование на сервер
+        if: env.HOST != ''
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
+          username: ${{ secrets.DEPLOY_USER || 'root' }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: site.tgz
+          target: /tmp/prodservis-release
+
+      - name: Установка и запуск
+        if: env.HOST != ''
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER || 'root' }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: SITE_DOMAIN
+          command_timeout: 40m
           script: |
             set -e
-            cd ~/prodservis
-            git fetch --depth 1 origin main
-            git reset --hard origin/main
-            docker compose -f docker-compose.prod.yml up -d --build
-            docker image prune -f
+            tar -xzf /tmp/prodservis-release/site.tgz -C /tmp/prodservis-release ./deploy/server.sh
+            SITE_DOMAIN="$SITE_DOMAIN" bash /tmp/prodservis-release/deploy/server.sh
