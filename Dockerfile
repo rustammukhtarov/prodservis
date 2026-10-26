@@ -30,6 +30,7 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 NOD
 RUN addgroup -S -g 1001 app && adduser -S -u 1001 -G app app
 COPY --from=builder --chown=app:app /app/.next/standalone ./
 COPY --from=builder --chown=app:app /app/.next/static ./.next/static
+COPY --from=builder --chown=app:app /app/public ./public
 # Каталоги загрузок — тома (см. docker-compose.prod.yml).
 RUN mkdir -p media private-uploads private-imports && chown -R app:app media private-uploads private-imports
 USER app

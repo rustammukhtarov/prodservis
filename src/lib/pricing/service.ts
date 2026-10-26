@@ -22,6 +22,17 @@ export async function getPrices(
 ): Promise<Map<number, ResolvedPrice | null>> {
   const date = opts.date ?? new Date()
   const settings = await payload.findGlobal({ slug: 'site-settings', depth: 0, overrideAccess: true })
+  // Прайс для гостей не выбран в настройках — берём прайс с галочкой «Показывать гостям».
+  if (!settings.guestPriceType) {
+    const fallback = await payload.find({
+      collection: 'price-types',
+      where: { isGuestDefault: { equals: true } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (fallback.docs[0]) settings.guestPriceType = fallback.docs[0].id
+  }
 
   let buyer: BuyerLike | null = null
   if (opts.customer && opts.buyerId) {

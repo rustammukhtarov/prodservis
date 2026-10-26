@@ -1,19 +1,20 @@
+import type { Metadata, Viewport } from 'next'
 import React from 'react'
+
 import './styles.css'
 
-export const metadata = {
-  description: 'A blank template using Payload in a Next.js app.',
-  title: 'Payload Blank Template',
+export const metadata: Metadata = {
+  title: { default: 'Продсервис — свежие продукты для ресторанов и магазинов', template: '%s — Продсервис' },
+  description:
+    'Поставки овощей, фруктов и бакалеи ресторанам, кафе, гостиницам и магазинам Москвы. Персональные цены, доставка на следующий день.',
 }
 
-export default async function RootLayout(props: { children: React.ReactNode }) {
-  const { children } = props
+export const viewport: Viewport = { themeColor: '#2F6E0E' }
 
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>
-        <main>{children}</main>
-      </body>
+    <html lang="ru">
+      <body>{children}</body>
     </html>
   )
 }
