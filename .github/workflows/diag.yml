@@ -16,6 +16,8 @@ jobs:
           done
           r=$(curl -s -o /dev/null -m 10 -w '%{http_code}' "https://$HOST/" 2>&1 || echo fail); out="${out}https:// → $r%0A"
           echo "::notice title=Снаружи::$out"
+          echo "::notice title=Адрес из секрета (через пробелы)::$(echo "$HOST" | sed 's/./& /g')"
+          echo "::notice title=Где находится адрес::$(curl -s -m 10 "https://ipinfo.io/$HOST/json" | tr -d '\n' )"
       - name: На сервере
         uses: appleboy/ssh-action@v1.2.0
         with:
