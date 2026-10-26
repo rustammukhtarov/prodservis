@@ -32,6 +32,26 @@ if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>
   systemctl enable --now docker
 fi
 
+# 1a. Защита сервера (повторяет cloud-init на случай, если он не применился).
+if [ ! -f /etc/ssh/sshd_config.d/01-prodservis.conf ]; then
+  log "Включаю вход только по ключу"
+  # Файл с именем 01-… читается раньше 50-cloud-init.conf, а в sshd действует первое значение.
+  printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/01-prodservis.conf
+  sshd -t && systemctl reload ssh
+fi
+if ! systemctl is-active --quiet fail2ban; then
+  log "Включаю защиту от подбора пароля (fail2ban)"
+  apt-get install -y -q fail2ban
+  printf '[sshd]\nenabled = true\nmaxretry = 5\nbantime = 1h\n' > /etc/fail2ban/jail.d/sshd.local
+  systemctl enable --now fail2ban
+fi
+if ! ufw status | grep -q 'Status: active'; then
+  log "Включаю брандмауэр: открыты 22, 80, 443"
+  ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp
+  ufw default deny incoming && ufw default allow outgoing
+  ufw --force enable
+fi
+
 # 2. Файл подкачки: сборке сайта нужно больше памяти, чем есть на небольшом сервере.
 if ! swapon --show | grep -q .; then
   log "Создаю файл подкачки 4 ГБ"
@@ -61,12 +81,18 @@ if [ ! -f .env ]; then
 fi
 # Домен и адрес сайта — из настроек выкладки; без домена сайт работает по http://IP.
 IP=$(hostname -I | awk '{print $1}')
-if [ -n "${SITE_DOMAIN:-}" ]; then DOMAIN="$SITE_DOMAIN"; URL="https://$SITE_DOMAIN"; else DOMAIN=":80"; URL="http://$IP"; fi
-sed -i '/^SITE_DOMAIN=/d;/^NEXT_PUBLIC_SERVER_URL=/d' .env
+if [ -n "${SITE_DOMAIN:-}" ]; then
+  DOMAIN="$SITE_DOMAIN"; URL="https://$SITE_DOMAIN"; CADDY_TLS=""
+else
+  # Без домена: http://IP и https://IP с самоподписанным сертификатом (для сетей, где открыт только 443).
+  DOMAIN="http://, https://$IP"; URL="http://$IP"; CADDY_TLS="tls internal"
+fi
+sed -i '/^SITE_DOMAIN=/d;/^NEXT_PUBLIC_SERVER_URL=/d;/^CADDY_TLS=/d' .env
 echo "SITE_DOMAIN=$DOMAIN" >> .env
 echo "NEXT_PUBLIC_SERVER_URL=$URL" >> .env
+echo "CADDY_TLS=$CADDY_TLS" >> .env
 # Переменные окружения важнее .env, поэтому выставляем их явно (пустой SITE_DOMAIN из выкладки иначе перекроет файл).
-export SITE_DOMAIN="$DOMAIN" NEXT_PUBLIC_SERVER_URL="$URL"
+export SITE_DOMAIN="$DOMAIN" NEXT_PUBLIC_SERVER_URL="$URL" CADDY_TLS="$CADDY_TLS"
 
 # 5. Сборка и запуск. Миграции базы применяются при старте сайта.
 log "Собираю и запускаю ($URL)"

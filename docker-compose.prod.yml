@@ -43,6 +43,7 @@ services:
       - '443:443'
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:?Задайте SITE_DOMAIN в .env}
+      CADDY_TLS: ${CADDY_TLS:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

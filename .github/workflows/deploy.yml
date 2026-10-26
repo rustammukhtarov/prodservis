@@ -32,6 +32,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Проверка конфигурации Caddy (по IP и по домену)
+        run: |
+          for mode in "http://, https://203.0.113.10|tls internal" "test.example.ru|"; do
+            docker run --rm -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" -e SITE_DOMAIN="${mode%%|*}" -e CADDY_TLS="${mode#*|}" \
+              mirror.gcr.io/library/caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          done
       - name: Сборка Docker-образа (проверка, без публикации)
         run: docker build --build-arg NEXT_PUBLIC_SERVER_URL=https://example.ru -t prodservis:ci .
 
@@ -86,6 +92,8 @@ jobs:
         run: |
           if [ -n "$SITE_DOMAIN" ]; then BASE="https://$SITE_DOMAIN"; else BASE="http://$HOST"; fi
           ok=1
+          https=$(curl -sk -o /dev/null -m 20 -w '%{http_code}' "https://$HOST/admin" || echo 000)
+          report="https/admin=$https"
           for path in / /admin /api/globals/site-settings; do
             code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "$BASE$path" || echo 000)
             echo "$path → $code"
