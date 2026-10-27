@@ -24,14 +24,16 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <h1>Вход для клиентов</h1>
           <p className="muted">После входа каталог покажет ваши цены.</p>
           <LoginForm next={next} />
+          <p className="small">
+            <Link href="/forgot-password">Забыли пароль?</Link>
+          </p>
         </div>
         <div className="auth-side">
           <h2 className="h3">Ещё не клиент?</h2>
-          <p>
-            Онлайн-регистрация откроется в ближайшее время. Пока оставьте заявку по телефону
-            {viewer.settings.phone ? ` ${viewer.settings.phone}` : ''} — менеджер создаст доступ и назначит цены.
-          </p>
-          <Link href="/info/kontakty">Контакты</Link>
+          <p>Зарегистрируйтесь: ресторанам, магазинам и оптовикам менеджер назначит персональные цены, покупатели «для дома» могут заказывать сразу.</p>
+          <Link href="/register" className="btn btn-outline">
+            Зарегистрироваться
+          </Link>
         </div>
       </div>
     </Shell>

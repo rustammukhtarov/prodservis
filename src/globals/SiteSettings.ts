@@ -23,6 +23,14 @@ export const SiteSettings: GlobalConfig = {
             { name: 'address', label: 'Адрес офиса', type: 'text' },
             { name: 'workHours', label: 'Часы работы', type: 'text' },
             { name: 'requisites', label: 'Реквизиты', type: 'textarea' },
+            {
+              name: 'notifyEmails',
+              label: 'Куда слать уведомления менеджерам',
+              type: 'text',
+              admin: {
+                description: 'Адреса через запятую: новые заказы, регистрации клиентов, заявки поставщиков',
+              },
+            },
           ],
         },
         {

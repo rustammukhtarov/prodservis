@@ -10,7 +10,7 @@ import { IconCart, IconMenu, IconOrders, IconPin, IconSearch, IconUser } from '.
 const INFO_LINKS = [
   { href: '/info/dostavka', label: 'Доставка' },
   { href: '/info/otsrochka-platezha', label: 'Отсрочка платежа' },
-  { href: '/info/postavschikam', label: 'Поставщикам' },
+  { href: '/suppliers', label: 'Поставщикам' },
   { href: '/info/o-kompanii', label: 'О компании' },
   { href: '/info/kontakty', label: 'Контакты' },
 ]
@@ -136,11 +136,12 @@ export function Footer({ viewer }: { viewer: Viewer }) {
           <Link href="/info/dostavka">Доставка</Link>
           <Link href="/info/otsrochka-platezha">Отсрочка платежа</Link>
           <Link href="/login">Личный кабинет</Link>
+          <Link href="/register">Регистрация</Link>
         </nav>
         <nav aria-label="Компания" className="footer-col">
           <strong>Компания</strong>
           <Link href="/info/o-kompanii">О компании</Link>
-          <Link href="/info/postavschikam">Поставщикам</Link>
+          <Link href="/suppliers">Поставщикам</Link>
           <Link href="/info/kontakty">Контакты</Link>
         </nav>
         <nav aria-label="Документы" className="footer-col">

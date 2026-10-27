@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { ru } from '@payloadcms/translations/languages/ru'
 import path from 'path'
@@ -34,8 +35,25 @@ const siteURL = process.env.SERVER_URL || process.env.NEXT_PUBLIC_SERVER_URL || 
 // Поэтому адрес задаём только для https и localhost; от подделки запросов защищает cookie SameSite=Lax.
 const isPlainHttp = siteURL.startsWith('http://') && !/^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(siteURL)
 
+// Почта: пока SMTP не настроен (переменные SMTP_*), письма только пишутся в журнал.
+const smtpPort = Number(process.env.SMTP_PORT || 465)
+const email = process.env.SMTP_HOST
+  ? nodemailerAdapter({
+      defaultFromAddress: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@prodmsk.ru',
+      defaultFromName: 'Продсервис',
+      skipVerify: true,
+      transportOptions: {
+        host: process.env.SMTP_HOST,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      },
+    })
+  : undefined
+
 export default buildConfig({
   serverURL: isPlainHttp ? '' : siteURL,
+  email,
   admin: {
     user: Users.slug,
     meta: { titleSuffix: ' — Продсервис' },

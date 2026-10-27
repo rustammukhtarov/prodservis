@@ -32,6 +32,12 @@ services:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?Задайте PAYLOAD_SECRET в .env}
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
       SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+      # Почта (необязательно): без SMTP_HOST письма только пишутся в журнал сайта.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
     volumes:
       - media:/app/media
       - private-uploads:/app/private-uploads

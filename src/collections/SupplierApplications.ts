@@ -11,7 +11,7 @@ export const SupplierApplications: CollectionConfig = {
     defaultColumns: ['company', 'inn', 'contactName', 'phone', 'status', 'createdAt'],
     group: 'Клиенты',
   },
-  access: { create: () => true, read: staffOnly, update: salesAccess, delete: salesAccess },
+  access: { create: staffOnly, read: staffOnly, update: salesAccess, delete: salesAccess },
   defaultSort: '-createdAt',
   fields: [
     {

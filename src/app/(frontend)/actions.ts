@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 
 import { normalizeQty } from '@/lib/cartQty'
 import { isSlotOpen } from '@/lib/delivery'
+import { emailLayout, sendSafe, siteURL, staffRecipients } from '@/lib/email'
+import { orderSummaryHtml } from '@/lib/orderEmail'
 import type { Buyer, Order, Product } from '@/payload-types'
 
 import { buildCart, readCart, writeCart } from './lib/cart'
@@ -150,5 +152,29 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   })) as Order
 
   await writeCart(new Map())
+
+  // Письма: менеджерам — новый заказ, клиенту — подтверждение. Ошибка почты заказ не отменяет.
+  const summary = orderSummaryHtml(order, buyer?.title)
+  await sendSafe(payload, {
+    to: await staffRecipients(payload),
+    subject: `Новый заказ ${order.number} — ${buyer?.title ?? customer.name} — ${priced.total.toLocaleString('ru-RU')} ₽`,
+    html: emailLayout({
+      title: `Новый заказ ${order.number}`,
+      paragraphs: [`Клиент: ${customer.name} (${customer.email})`],
+      extraHtml: summary,
+      button: { text: 'Открыть заказ в админке', url: `${siteURL()}/admin/collections/orders/${order.id}` },
+    }),
+  })
+  await sendSafe(payload, {
+    to: customer.email,
+    subject: `Заказ ${order.number} принят — Продсервис`,
+    html: emailLayout({
+      title: `Заказ ${order.number} принят`,
+      paragraphs: ['Спасибо! Мы получили ваш заказ. Если что-то нужно уточнить, менеджер свяжется с вами.'],
+      extraHtml: summary,
+      button: { text: 'Мои заказы', url: `${siteURL()}/orders/${order.id}` },
+    }),
+  })
+
   redirect(`/orders/${order.id}?created=1`)
 }

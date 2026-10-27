@@ -4,6 +4,7 @@ type FieldAccessConfig = { create: FieldAccess; update: FieldAccess }
 
 import { isStaff, salesAccess } from '../access'
 import { guid1C } from '../fields/common'
+import { emailLayout, sendSafe, siteURL } from '../lib/email'
 import { SEGMENT_OPTIONS } from '../lib/segments'
 import { validateInn } from './SupplierApplications'
 
@@ -24,14 +25,26 @@ export const Customers: CollectionConfig = {
     listSearchableFields: ['name', 'email', 'phone'],
   },
   auth: {
+    forgotPassword: {
+      generateEmailSubject: () => 'Восстановление пароля — Продсервис',
+      generateEmailHTML: (args) =>
+        emailLayout({
+          title: 'Восстановление пароля',
+          paragraphs: [
+            'Вы запросили смену пароля для входа на сайт Продсервис.',
+            'Ссылка действует 1 час. Если вы ничего не запрашивали, просто проигнорируйте это письмо.',
+          ],
+          button: { text: 'Задать новый пароль', url: `${siteURL()}/reset-password?token=${args?.token ?? ''}` },
+        }),
+    },
     tokenExpiration: 60 * 60 * 24 * 30,
     maxLoginAttempts: 10,
     lockTime: 15 * 60 * 1000,
   },
   access: {
     admin: () => false,
-    // Регистрация открыта; новый клиент получает статус «на проверке».
-    create: () => true,
+    // Регистрация идёт через форму сайта (серверное действие с проверками и ограничением частоты).
+    create: ({ req: { user } }) => isStaff(user),
     read: ({ req: { user } }) => {
       if (isStaff(user)) return true
       if (user?.collection === 'customers') return { id: { equals: user.id } }
@@ -140,6 +153,24 @@ export const Customers: CollectionConfig = {
     guid1C(false),
   ],
   hooks: {
+    afterChange: [
+      async ({ doc, previousDoc, operation, req }) => {
+        if (operation !== 'update' || previousDoc?.status === 'active' || doc.status !== 'active') return doc
+        await sendSafe(req.payload, {
+          to: doc.email,
+          subject: 'Ваш аккаунт активирован — Продсервис',
+          html: emailLayout({
+            title: 'Ваши цены готовы',
+            paragraphs: [
+              `${doc.name}, менеджер проверил вашу заявку и назначил цены.`,
+              'Войдите на сайт — каталог покажет ваш прайс, цены торгов и индивидуальные условия.',
+            ],
+            button: { text: 'Перейти в каталог', url: `${siteURL()}/catalog` },
+          }),
+        })
+        return doc
+      },
+    ],
     beforeChange: [
       async ({ data, operation, req }) => {
         // Сотрудник в админке и служебные скрипты (обмен с 1С, импорт) задают статус сами.

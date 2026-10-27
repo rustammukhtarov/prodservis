@@ -5,6 +5,7 @@
 #   DEPLOY_SSH_KEY  — закрытый SSH-ключ (обязательно)
 #   DEPLOY_USER     — пользователь на сервере (необязательно, по умолчанию root)
 #   SITE_DOMAIN     — домен стенда, например test.prodmsk.ru (необязательно; без него сайт работает по http://IP)
+#   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM — почта для писем сайта (необязательно)
 #
 # Первая выкладка сама ставит Docker, создаёт файл подкачки и .env со случайными паролями.
 name: Проверка и выкладка
@@ -26,7 +27,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: npx tsc --noEmit
-      - run: npx vitest run --config ./vitest.config.mts tests/int/pricing.int.spec.ts tests/int/priceContext.int.spec.ts tests/int/delivery.int.spec.ts tests/int/cart.int.spec.ts
+      - run: npx vitest run --config ./vitest.config.mts tests/int/pricing.int.spec.ts tests/int/priceContext.int.spec.ts tests/int/delivery.int.spec.ts tests/int/cart.int.spec.ts tests/int/rateLimit.int.spec.ts
 
   docker:
     runs-on: ubuntu-latest
@@ -92,16 +93,21 @@ jobs:
         env:
           SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
           PUBLIC_HOST: ${{ secrets.DEPLOY_HOST }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER || 'root' }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: SITE_DOMAIN,PUBLIC_HOST
+          envs: SITE_DOMAIN,PUBLIC_HOST,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM
           command_timeout: 40m
           script: |
             set -e
             tar -xzf /tmp/prodservis-release/site.tgz -C /tmp/prodservis-release deploy/server.sh
-            SITE_DOMAIN="$SITE_DOMAIN" PUBLIC_HOST="$PUBLIC_HOST" bash /tmp/prodservis-release/deploy/server.sh
+            SITE_DOMAIN="$SITE_DOMAIN" PUBLIC_HOST="$PUBLIC_HOST" SMTP_HOST="$SMTP_HOST" SMTP_PORT="$SMTP_PORT" SMTP_USER="$SMTP_USER" SMTP_PASS="$SMTP_PASS" SMTP_FROM="$SMTP_FROM" bash /tmp/prodservis-release/deploy/server.sh
 
       - name: Проверка снаружи
         if: env.HOST != ''

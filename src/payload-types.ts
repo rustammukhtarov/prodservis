@@ -1260,6 +1260,10 @@ export interface SiteSetting {
   workHours?: string | null;
   requisites?: string | null;
   /**
+   * Адреса через запятую: новые заказы, регистрации клиентов, заявки поставщиков
+   */
+  notifyEmails?: string | null;
+  /**
    * Склад работает без выходных. Заказ на рейс принимается до «время отгрузки минус N часов». Пусто — утро 6:00 и день 14:00, приём за 4 часа.
    */
   deliverySlots?:
@@ -1344,6 +1348,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   address?: T;
   workHours?: T;
   requisites?: T;
+  notifyEmails?: T;
   deliverySlots?:
     | T
     | {

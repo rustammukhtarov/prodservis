@@ -1395,3 +1395,102 @@ fieldset.field legend {
   padding: 14px 16px;
   margin-bottom: 20px;
 }
+
+/* Регистрация и формы заявок */
+.auth-wide {
+  max-width: 1100px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+.auth-narrow {
+  max-width: 480px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 860px) {
+  .auth-wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.req {
+  color: #b42318;
+}
+.form-block {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.form-block legend {
+  font-weight: 700;
+  padding: 0 6px;
+}
+.segments-pick {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 10px;
+}
+.segments-pick legend {
+  font-weight: 700;
+  margin-bottom: 10px;
+  padding: 0;
+}
+.seg {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  cursor: pointer;
+  background: #fff;
+}
+.seg input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.seg.is-on {
+  border: 2px solid var(--green-dark);
+  background: var(--green-soft);
+  padding: 13px 15px;
+}
+.seg:focus-within {
+  outline: 2px solid var(--green-dark);
+  outline-offset: 2px;
+}
+.consent {
+  align-items: flex-start;
+  font-size: 14px;
+}
+.consent input {
+  margin-top: 2px;
+}
+.field small {
+  font-weight: 400;
+}
+.field input[type='file'] {
+  height: auto;
+  padding: 8px;
+}
+.plain-steps {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.done {
+  max-width: 640px;
+  margin: 24px auto;
+  align-items: center;
+  text-align: center;
+}
+.done svg {
+  color: var(--green-dark);
+}

@@ -4,7 +4,7 @@ import { isStaff, staffOnly } from '../access'
 
 /**
  * Закрытые файлы: коммерческие предложения поставщиков, документы на отсрочку.
- * Видят только сотрудники. Загрузить может и гость — только вместе с заявкой.
+ * Видят только сотрудники. Гость загружает файл только вместе с заявкой (через форму сайта).
  */
 export const Documents: CollectionConfig = {
   slug: 'documents',
@@ -12,7 +12,8 @@ export const Documents: CollectionConfig = {
   admin: { group: 'Клиенты', useAsTitle: 'filename' },
   access: {
     read: staffOnly,
-    create: () => true,
+    // Гость загружает файл только вместе с заявкой — через серверное действие формы.
+    create: staffOnly,
     update: staffOnly,
     delete: ({ req: { user } }) => isStaff(user),
   },

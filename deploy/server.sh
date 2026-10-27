@@ -89,6 +89,11 @@ else
   # Без домена — только http://IP (HTTPS по голому IP браузеры и Caddy толком не поддерживают).
   DOMAIN=":80"; URL="http://$IP"; CADDY_TLS=""
 fi
+# Почта: значения приходят из секретов GitHub; пустые — не трогаем то, что уже есть в .env.
+for v in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM; do
+  val="${!v:-}"
+  if [ -n "$val" ]; then sed -i "/^$v=/d" .env; printf "%s='%s'\n" "$v" "$val" >> .env; fi
+done
 sed -i '/^SITE_DOMAIN=/d;/^NEXT_PUBLIC_SERVER_URL=/d;/^CADDY_TLS=/d' .env
 echo "SITE_DOMAIN=$DOMAIN" >> .env
 echo "NEXT_PUBLIC_SERVER_URL=$URL" >> .env

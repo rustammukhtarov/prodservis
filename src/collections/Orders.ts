@@ -1,6 +1,8 @@
 import type { CollectionConfig } from 'payload'
 
 import { adminOnly, salesAccess, staffOrOwnCustomer } from '../access'
+import { emailLayout, sendSafe, siteURL } from '../lib/email'
+import { ORDER_STATUS_LABEL, orderSummaryHtml } from '../lib/orderEmail'
 
 /**
  * Заказы. Клиент создаёт заказ только через серверный эндпоинт оформления
@@ -129,6 +131,32 @@ export const Orders: CollectionConfig = {
     { name: 'guid1C', label: 'ID в 1С', type: 'text', index: true, admin: { position: 'sidebar', readOnly: true } },
   ],
   hooks: {
+    afterChange: [
+      async ({ doc, previousDoc, operation, req }) => {
+        if (operation !== 'update' || !previousDoc || doc.status === previousDoc.status) return doc
+        const customerId = typeof doc.customer === 'object' ? doc.customer?.id : doc.customer
+        const customer = await req.payload
+          .findByID({ collection: 'customers', id: customerId, depth: 0, overrideAccess: true, req })
+          .catch(() => null)
+        if (!customer?.email) return doc
+        const label = ORDER_STATUS_LABEL[doc.status] ?? doc.status
+        await sendSafe(req.payload, {
+          to: customer.email,
+          subject: `Заказ ${doc.number}: ${label.toLowerCase()} — Продсервис`,
+          html: emailLayout({
+            title: `Заказ ${doc.number}: ${label.toLowerCase()}`,
+            paragraphs: [
+              doc.status === 'cancelled'
+                ? 'Заказ отменён. Если это неожиданно — свяжитесь с вашим менеджером.'
+                : `Статус заказа изменился: «${label}».`,
+            ],
+            extraHtml: orderSummaryHtml(doc),
+            button: { text: 'Открыть заказ', url: `${siteURL()}/orders/${doc.id}` },
+          }),
+        })
+        return doc
+      },
+    ],
     beforeChange: [
       async ({ data, operation, req }) => {
         if (operation === 'create' && !data.number) {

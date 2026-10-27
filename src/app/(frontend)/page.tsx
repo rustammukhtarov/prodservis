@@ -17,13 +17,25 @@ const SEGMENTS = [
     title: 'Ресторанам, кафе, отелям',
     perks: ['Персональные цены и торги сети', 'Отсрочка платежа', 'Доставка на следующий день'],
     cta: 'Стать клиентом',
+    type: 'horeca',
   },
-  { title: 'Магазинам', perks: ['Персональный прайс', 'Отсрочка платежа', 'Поставки по графику'], cta: 'Стать клиентом' },
-  { title: 'Крупный опт', perks: ['Цены от объёма', 'Доставка или самовывоз', 'Персональный менеджер'], cta: 'Обсудить условия' },
+  {
+    title: 'Магазинам',
+    perks: ['Персональный прайс', 'Отсрочка платежа', 'Поставки по графику'],
+    cta: 'Стать клиентом',
+    type: 'retail',
+  },
+  {
+    title: 'Крупный опт',
+    perks: ['Цены от объёма', 'Доставка или самовывоз', 'Персональный менеджер'],
+    cta: 'Обсудить условия',
+    type: 'wholesale',
+  },
   {
     title: 'Для дома',
     perks: ['Те же продукты, что у ресторанов', 'Заказ от 15 000 ₽', 'Доставка до двери'],
     cta: 'Заказать домой',
+    type: 'individual',
   },
 ]
 
@@ -57,8 +69,8 @@ export default async function HomePage() {
               Перейти в каталог
             </Link>
             {!viewer.customer && (
-              <Link href="/login" className="btn btn-outline btn-lg">
-                Войти
+              <Link href="/register" className="btn btn-outline btn-lg">
+                Стать клиентом
               </Link>
             )}
           </div>
@@ -150,7 +162,7 @@ export default async function HomePage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/info/kontakty">{s.cta}</Link>
+              <Link href={`/register?type=${s.type}`}>{s.cta}</Link>
             </div>
           ))}
         </div>
