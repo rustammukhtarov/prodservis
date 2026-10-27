@@ -54,8 +54,14 @@ export async function staffRecipients(payload: Payload): Promise<string[]> {
   const s = (await payload.findGlobal({ slug: 'site-settings', depth: 0, overrideAccess: true })) as {
     notifyEmails?: string | null
   }
-  return (s.notifyEmails ?? '')
+  const list = (s.notifyEmails ?? '')
     .split(/[,;\s]+/)
     .map((x) => x.trim())
     .filter((x) => /.+@.+\..+/.test(x))
+  // В настройках пусто — уведомления идут на общий ящик сайта (с него же уходят письма).
+  if (!list.length) {
+    const box = (process.env.NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER || '').trim()
+    if (/.+@.+\..+/.test(box)) list.push(box)
+  }
+  return list
 }
