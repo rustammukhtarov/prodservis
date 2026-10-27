@@ -572,6 +572,14 @@ export interface Order {
   customer: number | Customer;
   buyer?: (number | null) | Buyer;
   deliveryDate: string;
+  /**
+   * Код рейса из настроек
+   */
+  deliverySlot?: string | null;
+  deliverySlotTitle?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  paymentMethod?: ('contract' | 'cash' | 'card' | 'online') | null;
   address?: string | null;
   deliveryPointGuid1C?: string | null;
   items: {
@@ -1029,6 +1037,11 @@ export interface OrdersSelect<T extends boolean = true> {
   customer?: T;
   buyer?: T;
   deliveryDate?: T;
+  deliverySlot?: T;
+  deliverySlotTitle?: T;
+  contactName?: T;
+  contactPhone?: T;
+  paymentMethod?: T;
   address?: T;
   deliveryPointGuid1C?: T;
   items?:
@@ -1246,7 +1259,18 @@ export interface SiteSetting {
   address?: string | null;
   workHours?: string | null;
   requisites?: string | null;
-  orderCutoff?: string | null;
+  /**
+   * Склад работает без выходных. Заказ на рейс принимается до «время отгрузки минус N часов». Пусто — утро 6:00 и день 14:00, приём за 4 часа.
+   */
+  deliverySlots?:
+    | {
+        title: string;
+        code: string;
+        shipAt: string;
+        cutoffHours?: number | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * Какие цены видит посетитель без входа. Пусто — цены скрыты до входа.
    */
@@ -1320,7 +1344,15 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   address?: T;
   workHours?: T;
   requisites?: T;
-  orderCutoff?: T;
+  deliverySlots?:
+    | T
+    | {
+        title?: T;
+        code?: T;
+        shipAt?: T;
+        cutoffHours?: T;
+        id?: T;
+      };
   guestPriceType?: T;
   segments?:
     | T

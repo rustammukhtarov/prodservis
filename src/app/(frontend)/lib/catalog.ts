@@ -3,6 +3,7 @@ import { cache } from 'react'
 import type { Category, Media, Product } from '@/payload-types'
 import { getPrices } from '@/lib/pricing/service'
 import type { ResolvedPrice } from '@/lib/pricing/resolvePrice'
+import { addDays, moscowToday, type SlotOption } from '@/lib/delivery'
 
 import { getPayloadClient, type Viewer } from './viewer'
 
@@ -136,3 +137,15 @@ export const priceNote = (price: ResolvedPrice | null): { text: string; tone: 't
   if (price.source === 'individual') return { text: `Ваша цена${until}`, tone: 'personal' }
   return null
 }
+
+/** «сегодня», «завтра» или «пятница, 30 октября». */
+export const relativeDay = (day: string, now = new Date()) => {
+  const today = moscowToday(now)
+  if (day === today) return 'сегодня'
+  if (day === addDays(today, 1)) return 'завтра'
+  return weekdayLabel(new Date(`${day}T12:00:00+03:00`))
+}
+
+/** «завтра, утренняя доставка (отгрузка в 06:00)» */
+export const slotLabel = (o: SlotOption, withTime = false) =>
+  `${relativeDay(o.day)}, ${o.slot.title.toLowerCase()}${withTime ? ` (отгрузка в ${o.slot.shipAt})` : ''}`

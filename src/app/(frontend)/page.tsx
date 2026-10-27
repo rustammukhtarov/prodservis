@@ -5,7 +5,7 @@ import type { Media, Product } from '@/payload-types'
 import { IconCalendar, IconCheck, IconTag, IconTruck } from './components/Icons'
 import { ProductGrid } from './components/ProductCard'
 import { GuestPriceNotice, Shell } from './components/Shell'
-import { getCategories, parentId, toCards } from './lib/catalog'
+import { getCategories, parentId, slotLabel, toCards } from './lib/catalog'
 import { getViewer } from './lib/viewer'
 
 export const dynamic = 'force-dynamic'
@@ -29,7 +29,6 @@ const SEGMENTS = [
 
 export default async function HomePage() {
   const viewer = await getViewer()
-  const cutoff = viewer.settings.orderCutoff || '17:00'
   const categories = (await getCategories()).filter((c) => !parentId(c))
 
   const fresh = await viewer.payload.find({
@@ -46,7 +45,9 @@ export default async function HomePage() {
     <Shell viewer={viewer}>
       <section className="hero">
         <div className="hero-text">
-          <span className="pill">Заказ до {cutoff} — доставка завтра</span>
+          {viewer.nextSlot && (
+            <span className="pill">Ближайшая доставка: {slotLabel(viewer.nextSlot)}</span>
+          )}
           <h1>Свежие овощи, фрукты и бакалея для ресторанов и магазинов</h1>
           <p className="lead">
             Войдите — и каталог покажет ваши цены: прайс, цены торгов вашей сети и индивидуальные условия.
@@ -93,8 +94,8 @@ export default async function HomePage() {
             <IconTruck />
           </span>
           <span>
-            <strong>Доставка завтра</strong>
-            <span className="muted small">При заказе до {cutoff}</span>
+            <strong>Два рейса в день</strong>
+            <span className="muted small">Утром и днём, без выходных</span>
           </span>
         </div>
       </section>

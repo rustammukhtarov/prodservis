@@ -8,7 +8,7 @@ import { AutoSubmit, MobileCollapse } from '../components/ClientBits'
 import { IconCheck } from '../components/Icons'
 import { ProductGrid } from '../components/ProductCard'
 import { GuestPriceNotice, Shell } from '../components/Shell'
-import { categoryPath, getCategories, parentId, STORAGE_LABEL, subtreeIds, toCards, weekdayLabel } from '../lib/catalog'
+import { categoryPath, getCategories, parentId, STORAGE_LABEL, slotLabel, subtreeIds, toCards, weekdayLabel } from '../lib/catalog'
 import { getViewer } from '../lib/viewer'
 
 export type SearchParams = Record<string, string | string[] | undefined>
@@ -205,7 +205,7 @@ export async function CatalogView({ slug, searchParams }: { slug?: string; searc
         <section aria-label="Товары" className="catalog-list">
           <div className="list-head">
             <p className="notice notice-ok">
-              <IconCheck size={16} /> Цены на доставку: {weekdayLabel(viewer.deliveryDate)}
+              <IconCheck size={16} /> Цены на доставку {viewer.nextSlot ? slotLabel(viewer.nextSlot) : weekdayLabel(viewer.deliveryDate)}
             </p>
             <AutoSubmit className="sort-form">
               {Object.entries(searchParams)

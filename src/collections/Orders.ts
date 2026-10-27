@@ -11,7 +11,7 @@ export const Orders: CollectionConfig = {
   labels: { singular: 'Заказ', plural: 'Заказы' },
   admin: {
     useAsTitle: 'number',
-    defaultColumns: ['number', 'customer', 'total', 'deliveryDate', 'status', 'exportedTo1C'],
+    defaultColumns: ['number', 'customer', 'buyer', 'total', 'deliveryDate', 'deliverySlotTitle', 'status', 'exportedTo1C'],
     group: 'Продажи',
   },
   access: {
@@ -33,7 +33,28 @@ export const Orders: CollectionConfig = {
           label: 'Дата доставки',
           type: 'date',
           required: true,
-          admin: { date: { pickerAppearance: 'dayOnly' } },
+          admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' } },
+        },
+        { name: 'deliverySlot', label: 'Рейс', type: 'text', admin: { description: 'Код рейса из настроек' } },
+        { name: 'deliverySlotTitle', label: 'Рейс (название)', type: 'text' },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        { name: 'contactName', label: 'Контактное лицо', type: 'text' },
+        { name: 'contactPhone', label: 'Телефон', type: 'text' },
+        {
+          name: 'paymentMethod',
+          label: 'Оплата',
+          type: 'select',
+          defaultValue: 'contract',
+          options: [
+            { label: 'По договору (безнал)', value: 'contract' },
+            { label: 'Наличными курьеру', value: 'cash' },
+            { label: 'Картой курьеру', value: 'card' },
+            { label: 'Онлайн при оформлении', value: 'online' },
+          ],
         },
       ],
     },

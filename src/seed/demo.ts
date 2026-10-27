@@ -127,7 +127,6 @@ await payload.updateGlobal({
   slug: 'site-settings',
   data: {
     guestPriceType: priceTypes[30],
-    orderCutoff: '17:00',
     segments: { individual: { minOrderSum: 15000, defaultPriceType: retailType.id, autoApprove: true } },
   },
   overrideAccess: true,

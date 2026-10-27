@@ -2,6 +2,7 @@ import { cookies, headers } from 'next/headers'
 import { getPayload, type Payload } from 'payload'
 import { cache } from 'react'
 
+import { availableSlots, type DeliverySlot, moscowToday, normalizeSlots, type SlotOption } from '@/lib/delivery'
 import config from '@/payload.config'
 import type { Buyer, Customer, SiteSetting } from '@/payload-types'
 
@@ -16,36 +17,19 @@ export interface Viewer {
   /** Выбранное юрлицо. */
   buyer: Buyer | null
   settings: SiteSetting
-  /** День доставки, на который показываются цены. */
+  /** Рейсы доставки из настроек. */
+  slots: DeliverySlot[]
+  /** Ближайший рейс, на который ещё принимаются заказы. */
+  nextSlot: SlotOption | null
+  /** День доставки, на который показываются цены (ближайший рейс). */
   deliveryDate: Date
 }
 
 const idOf = (v: unknown): number | null =>
   v == null ? null : typeof v === 'object' ? ((v as { id: number }).id ?? null) : (v as number)
 
-/** Москва: время сейчас в минутах от полуночи и календарный день. */
-const moscowNow = () => {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Moscow',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(new Date())
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0)
-  return get('hour') * 60 + get('minute')
-}
-
-/** Заказ до времени отсечки — доставка завтра, позже — послезавтра. */
-export const nextDeliveryDate = (cutoff = '17:00'): Date => {
-  const [h, m] = cutoff.split(':').map(Number)
-  const limit = (h || 17) * 60 + (m || 0)
-  const days = moscowNow() < limit ? 1 : 2
-  // Полдень по Москве нужного дня — чтобы календарный день не съехал из-за часового пояса.
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow' }).format(new Date())
-  const d = new Date(`${today}T12:00:00+03:00`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d
-}
+/** Полдень по Москве указанного дня — чтобы календарный день не съехал из-за часового пояса. */
+export const dayToDate = (day: string) => new Date(`${day}T12:00:00+03:00`)
 
 export const getPayloadClient = cache(async () => getPayload({ config: await config }))
 
@@ -54,10 +38,13 @@ export const getViewer = cache(async (): Promise<Viewer> => {
   const payload = await getPayloadClient()
   const { user } = await payload.auth({ headers: await headers() })
   const settings = (await payload.findGlobal({ slug: 'site-settings', depth: 0, overrideAccess: true })) as SiteSetting
-  const deliveryDate = nextDeliveryDate(settings.orderCutoff ?? '17:00')
+  const slots = normalizeSlots(settings.deliverySlots)
+  const nextSlot = availableSlots(slots, new Date())[0] ?? null
+  const deliveryDate = dayToDate(nextSlot?.day ?? moscowToday(new Date()))
+  const common = { payload, settings, slots, nextSlot, deliveryDate }
 
   if (!user || user.collection !== 'customers') {
-    return { payload, customer: null, buyers: [], buyer: null, settings, deliveryDate }
+    return { ...common, customer: null, buyers: [], buyer: null }
   }
 
   const customer = (await payload.findByID({
@@ -83,5 +70,5 @@ export const getViewer = cache(async (): Promise<Viewer> => {
   const chosen = Number((await cookies()).get(BUYER_COOKIE)?.value)
   const buyer = buyers.find((b) => b.id === chosen) ?? buyers[0] ?? null
 
-  return { payload, customer, buyers, buyer, settings, deliveryDate }
+  return { ...common, customer, buyers, buyer }
 })

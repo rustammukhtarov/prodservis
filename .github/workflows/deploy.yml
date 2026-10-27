@@ -26,7 +26,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: npx tsc --noEmit
-      - run: npx vitest run --config ./vitest.config.mts tests/int/pricing.int.spec.ts tests/int/priceContext.int.spec.ts
+      - run: npx vitest run --config ./vitest.config.mts tests/int/pricing.int.spec.ts tests/int/priceContext.int.spec.ts tests/int/delivery.int.spec.ts tests/int/cart.int.spec.ts
 
   docker:
     runs-on: ubuntu-latest

@@ -1,6 +1,8 @@
 import Link from 'next/link'
 
 import { chooseBuyer } from '../actions'
+import { getCart } from '../lib/cart'
+import { rub } from '../lib/catalog'
 import type { Viewer } from '../lib/viewer'
 import { BuyerSelect, LogoutButton } from './ClientBits'
 import { IconCart, IconMenu, IconOrders, IconPin, IconSearch, IconUser } from './Icons'
@@ -15,7 +17,8 @@ const INFO_LINKS = [
 
 const telHref = (phone?: string | null) => (phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : undefined)
 
-export function Header({ viewer, query }: { viewer: Viewer; query?: string }) {
+export async function Header({ viewer, query }: { viewer: Viewer; query?: string }) {
+  const cart = await getCart()
   const { customer, buyers, buyer, settings } = viewer
   const phone = settings.phone
   const initial = (customer?.name || customer?.email || '?').trim().charAt(0).toUpperCase()
@@ -65,7 +68,7 @@ export function Header({ viewer, query }: { viewer: Viewer; query?: string }) {
               <IconSearch size={18} />
             </button>
           </form>
-          {customer ? (
+          {customer && (
             <div className="account">
               <span className="avatar" aria-hidden="true">
                 {initial}
@@ -84,22 +87,26 @@ export function Header({ viewer, query }: { viewer: Viewer; query?: string }) {
               </div>
               <LogoutButton className="link-btn small" />
             </div>
-          ) : (
-            <nav aria-label="Личный кабинет" className="header-icons">
+          )}
+          <nav aria-label="Личный кабинет" className="header-icons">
+            {!customer && (
               <Link href="/login">
                 <IconUser />
                 Войти
               </Link>
-              <Link href="/login?next=/orders">
-                <IconOrders />
-                Заказы
-              </Link>
-              <Link href="/login?next=/cart">
+            )}
+            <Link href={customer ? '/orders' : '/login?next=/orders'}>
+              <IconOrders />
+              Заказы
+            </Link>
+            <Link href="/cart" className={cart.count ? 'has-cart' : undefined}>
+              <span className="cart-ico">
                 <IconCart />
-                Корзина
-              </Link>
-            </nav>
-          )}
+                {cart.count > 0 && <span className="cart-badge">{cart.count}</span>}
+              </span>
+              {cart.count > 0 ? rub(cart.total) : 'Корзина'}
+            </Link>
+          </nav>
         </div>
       </header>
     </>

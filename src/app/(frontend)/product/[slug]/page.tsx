@@ -6,7 +6,8 @@ import { cache } from 'react'
 
 import type { Category, Product } from '@/payload-types'
 
-import { Availability, PriceLine, ProductGrid } from '../../components/ProductCard'
+import { Availability, BuyControl, PriceLine, ProductGrid } from '../../components/ProductCard'
+import { readCart } from '../../lib/cart'
 import { GuestPriceNotice, Shell } from '../../components/Shell'
 import {
   allImages,
@@ -16,6 +17,7 @@ import {
   STORAGE_LABEL,
   toCards,
   UNIT_SHORT,
+  slotLabel,
   weekdayLabel,
 } from '../../lib/catalog'
 import { getPayloadClient, getViewer } from '../../lib/viewer'
@@ -126,15 +128,9 @@ export default async function ProductPage({ params }: Props) {
             <PriceLine p={card} big />
             <span className="muted">
               Минимальный заказ — {card.minQty} {unit}
-              {card.step > 1 ? `, кратно ${card.step}` : ''}. Цена на доставку: {weekdayLabel(viewer.deliveryDate)}.
+              {card.step > 1 ? `, кратно ${card.step}` : ''}. Ближайшая доставка: {viewer.nextSlot ? slotLabel(viewer.nextSlot) : weekdayLabel(viewer.deliveryDate)}.
             </span>
-            {viewer.customer ? (
-              <p className="muted small">Заказ через корзину появится в следующем обновлении сайта.</p>
-            ) : (
-              <Link href={`/login?next=/product/${product.slug}`} className="btn btn-primary btn-lg">
-                Войти, чтобы заказать
-              </Link>
-            )}
+            {card.price && <BuyControl p={card} qty={(await readCart()).get(card.id) ?? 0} big />}
           </div>
           {!viewer.customer && <GuestPriceNotice />}
 

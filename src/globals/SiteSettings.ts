@@ -29,10 +29,36 @@ export const SiteSettings: GlobalConfig = {
           label: 'Заказ и цены',
           fields: [
             {
-              name: 'orderCutoff',
-              label: 'Время приёма заказов на завтра (ЧЧ:ММ)',
-              type: 'text',
-              defaultValue: '17:00',
+              name: 'deliverySlots',
+              label: 'Рейсы доставки',
+              type: 'array',
+              labels: { singular: 'Рейс', plural: 'Рейсы' },
+              admin: {
+                description:
+                  'Склад работает без выходных. Заказ на рейс принимается до «время отгрузки минус N часов». Пусто — утро 6:00 и день 14:00, приём за 4 часа.',
+              },
+              defaultValue: [
+                { code: 'morning', title: 'Утренняя доставка', shipAt: '06:00', cutoffHours: 4 },
+                { code: 'day', title: 'Дневная доставка', shipAt: '14:00', cutoffHours: 4 },
+              ],
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'title', label: 'Название', type: 'text', required: true },
+                    { name: 'code', label: 'Код (латиницей)', type: 'text', required: true },
+                    {
+                      name: 'shipAt',
+                      label: 'Отгрузка со склада (ЧЧ:ММ)',
+                      type: 'text',
+                      required: true,
+                      validate: (v: unknown) =>
+                        typeof v === 'string' && /^([01]?\d|2[0-3]):[0-5]\d$/.test(v) ? true : 'Формат ЧЧ:ММ, например 06:00',
+                    },
+                    { name: 'cutoffHours', label: 'Приём заказов закрывается за, ч', type: 'number', min: 0, defaultValue: 4 },
+                  ],
+                },
+              ],
             },
             {
               name: 'guestPriceType',

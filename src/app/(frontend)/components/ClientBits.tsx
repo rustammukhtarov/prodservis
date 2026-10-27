@@ -160,3 +160,101 @@ export function MobileCollapse({ summary, children }: { summary: string; childre
     </details>
   )
 }
+
+const fmtQty = (n: number) => n.toLocaleString('ru-RU', { maximumFractionDigits: 3 })
+
+/** Кнопка «В корзину» и счётчик −/+ с учётом минимального заказа и кратности. */
+export function CartControl({
+  productId,
+  initialQty,
+  minQty,
+  step,
+  unit,
+  action,
+  big,
+}: {
+  productId: number
+  initialQty: number
+  minQty: number
+  step: number
+  unit: string
+  action: (id: number, qty: number) => Promise<number>
+  big?: boolean
+}) {
+  const router = useRouter()
+  const [qty, setQty] = useState(initialQty)
+  const [draft, setDraft] = useState<string | null>(null)
+  const [pending, start] = useTransition()
+
+  const commit = (next: number) => {
+    setQty(next)
+    setDraft(null)
+    start(async () => {
+      const saved = await action(productId, next)
+      setQty(saved)
+      router.refresh()
+    })
+  }
+  const s = step > 0 ? step : 1
+  const min = minQty > 0 ? minQty : s
+  const plus = () => commit(qty <= 0 ? min : Math.round((qty + s) * 1000) / 1000)
+  const minus = () => {
+    const next = Math.round((qty - s) * 1000) / 1000
+    commit(next < min - 1e-9 ? 0 : next)
+  }
+
+  if (qty <= 0) {
+    return (
+      <button type="button" className={`btn btn-primary ${big ? 'btn-lg' : ''} cart-add`} onClick={plus} disabled={pending}>
+        В корзину
+      </button>
+    )
+  }
+  return (
+    <div className={`stepper ${big ? 'stepper-big' : ''}`} aria-busy={pending}>
+      <button type="button" aria-label="Меньше" onClick={minus}>
+        −
+      </button>
+      <label>
+        <span className="sr-only">Количество, {unit}</span>
+        <input
+          inputMode="decimal"
+          value={draft ?? fmtQty(qty)}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            if (draft == null) return
+            const n = Number(draft.replace(',', '.').replace(/\s/g, ''))
+            commit(Number.isFinite(n) ? n : qty)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+          }}
+        />
+        <span className="stepper-unit">{unit}</span>
+      </label>
+      <button type="button" aria-label="Больше" onClick={plus}>
+        +
+      </button>
+    </div>
+  )
+}
+
+export function RemoveFromCart({ productId, action }: { productId: number; action: (id: number, qty: number) => Promise<number> }) {
+  const router = useRouter()
+  const [pending, start] = useTransition()
+  return (
+    <button
+      type="button"
+      className="link-btn small muted-link"
+      disabled={pending}
+      onClick={() =>
+        start(async () => {
+          await action(productId, 0)
+          router.refresh()
+        })
+      }
+    >
+      Удалить
+    </button>
+  )
+}
