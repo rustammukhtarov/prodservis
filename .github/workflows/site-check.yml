@@ -27,12 +27,13 @@ jobs:
           script: |
             cd /root/prodservis
             n() { printf '::notice title=%s::%s\n' "$1" "$(printf '%s' "$2" | tr '\n' ' ' | cut -c1-3000)"; }
-            n "env" "$(grep -E '^(SITE_DOMAIN|SITE_HOST|NEXT_PUBLIC_SERVER_URL|CADDY_HSTS|SMTP_HOST|SMTP_PORT|SMTP_USER|SMTP_FROM)=' .env)"
-            n "SMTP_PASS задан" "$(grep -c '^SMTP_PASS=.\+' .env)"
-            n "контейнеры" "$(docker compose -f docker-compose.prod.yml ps --format '{{.Name}} {{.Status}}')"
-            n "caddy env" "$(docker compose -f docker-compose.prod.yml exec -T caddy env | grep -E 'SITE_|CADDY_')"
-            n "caddy лог" "$(docker compose -f docker-compose.prod.yml logs --tail 40 caddy 2>&1 | grep -iE 'error|obtain|certificate|challenge|acme' | tail -12)"
-            n "ACME доступ" "$(curl -s -o /dev/null -m 15 -w '%{http_code}' https://acme-v02.api.letsencrypt.org/directory)"
-            n "smtp 465" "$(timeout 8 bash -c 'echo > /dev/tcp/smtp.timeweb.ru/465' 2>/dev/null && echo open || echo closed)"
-            n "smtp 2525" "$(timeout 8 bash -c 'echo > /dev/tcp/smtp.timeweb.ru/2525' 2>/dev/null && echo open || echo closed)"
-            n "app лог почта" "$(docker compose -f docker-compose.prod.yml logs --tail 200 app 2>&1 | grep -iE 'email|smtp|mail' | tail -5)"
+            for t in acme-v02.api.letsencrypt.org:443 acme.zerossl.com:443 smtp.timeweb.ru:465 smtp.timeweb.ru:25 ya.ru:443 github.com:443 1.1.1.1:443 77.88.8.8:53 mirror.gcr.io:443 registry.npmjs.org:443; do
+              h=${t%:*}; p=${t#*:}
+              ip=$(getent ahostsv4 $h | awk 'NR==1{print $1}')
+              r=$(timeout 8 bash -c "echo > /dev/tcp/$h/$p" 2>/dev/null && echo open || echo closed)
+              n "$t" "$ip $r"
+            done
+            n "маршрут" "$(ip route | head -3)"
+            n "iptables OUTPUT" "$(iptables -S OUTPUT 2>/dev/null | head -5)"
+            n "ufw" "$(ufw status verbose | head -8)"
+            n "resolv" "$(grep nameserver /etc/resolv.conf)"
