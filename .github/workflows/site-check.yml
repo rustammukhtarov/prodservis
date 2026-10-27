@@ -1,0 +1,18 @@
+name: Проверка сайта снаружи
+on:
+  push:
+    branches: [site-check]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          n() { echo "::notice title=$1::$2"; }
+          for u in https://prodmskshop.ru/ https://prodmskshop.ru/admin https://prodmskshop.ru/catalog https://prodmskshop.ru/register https://prodmskshop.ru/api/globals/site-settings http://prodmskshop.ru/ https://www.prodmskshop.ru/ http://147.45.245.70/; do
+            r=$(curl -s -o /dev/null -m 20 -w '%{http_code} -> %{redirect_url}' "$u" || echo "000")
+            n "$u" "$r"
+          done
+          cert=$(echo | timeout 15 openssl s_client -connect prodmskshop.ru:443 -servername prodmskshop.ru 2>/dev/null | openssl x509 -noout -issuer -enddate 2>/dev/null | tr '\n' ' ')
+          n "Сертификат" "${cert:-нет}"
+          h=$(curl -sI -m 20 https://prodmskshop.ru/ | grep -iE 'strict-transport|x-frame|x-content|referrer' | tr '\r\n' '  ')
+          n "Заголовки" "${h:-нет}"
