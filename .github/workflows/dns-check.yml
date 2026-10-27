@@ -1,0 +1,19 @@
+name: Проверка DNS домена
+on:
+  push:
+    branches: [dns-check]
+jobs:
+  dns:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for n in prodmskshop.ru www.prodmskshop.ru; do
+            for r in 8.8.8.8 1.1.1.1 77.88.8.8; do
+              a=$(dig +short A "$n" @"$r" | tr '\n' ' ')
+              echo "::notice title=$n @$r::A = ${a:-нет записи}"
+            done
+          done
+          ns=$(dig +short NS prodmskshop.ru @8.8.8.8 | tr '\n' ' ')
+          echo "::notice title=NS::${ns:-нет}"
+          code=$(curl -s -o /dev/null -m 15 -w '%{http_code}' http://prodmskshop.ru/ || echo 000)
+          echo "::notice title=http://prodmskshop.ru::$code"
