@@ -53,6 +53,8 @@ services:
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:?Задайте SITE_DOMAIN в .env}
       CADDY_TLS: ${CADDY_TLS:-}
+      CADDY_HSTS: ${CADDY_HSTS:-}
+      SITE_HOST: ${SITE_HOST:-localhost.invalid}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

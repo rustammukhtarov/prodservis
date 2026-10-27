@@ -35,15 +35,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Проверка конфигурации Caddy (по IP и по домену)
         run: |
-          for mode in ":80|" "test.example.ru|"; do
-            docker run --rm -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" -e SITE_DOMAIN="${mode%%|*}" -e CADDY_TLS="${mode#*|}" \
-              mirror.gcr.io/library/caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-          done
+          check() { docker run --rm -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" -e SITE_DOMAIN="$1" -e SITE_HOST="$2" -e CADDY_HSTS="$3" -e CADDY_TLS="" \
+              mirror.gcr.io/library/caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; }
+          check ":80" "localhost.invalid" ""
+          check "example.ru, www.example.ru" "example.ru" "header Strict-Transport-Security max-age=31536000"
       - name: Сборка Docker-образа
         env:
           HOST: ${{ secrets.DEPLOY_HOST }}
           SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
         run: |
+          SITE_DOMAIN="$(printf '%s' "$SITE_DOMAIN" | sed -E 's#^https?://##; s#/.*$##; s#^www\.##' | tr 'A-Z' 'a-z')"
           if [ -n "$SITE_DOMAIN" ]; then URL="https://$SITE_DOMAIN"; elif [ -n "$HOST" ]; then URL="http://$HOST"; else URL="https://example.ru"; fi
           docker build --build-arg NEXT_PUBLIC_SERVER_URL="$URL" -t prodservis-app:latest .
           docker save prodservis-app:latest | gzip -1 > image.tgz
@@ -114,6 +115,7 @@ jobs:
         env:
           SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
         run: |
+          SITE_DOMAIN="$(printf '%s' "$SITE_DOMAIN" | sed -E 's#^https?://##; s#/.*$##; s#^www\.##' | tr 'A-Z' 'a-z')"
           if [ -n "$SITE_DOMAIN" ]; then BASE="https://$SITE_DOMAIN"; else BASE="http://$HOST"; fi
           ok=1
           https=$(curl -sk -o /dev/null -m 20 -w '%{http_code}' "https://$HOST/admin" || echo 000)

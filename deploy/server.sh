@@ -83,23 +83,32 @@ fi
 # Внешний адрес передаёт выкладка (секрет DEPLOY_HOST): hostname -I может вернуть внутренний адрес,
 # и тогда админка не пускает (вход «сбрасывается»: адрес в настройках не совпадает с адресом в браузере).
 IP="${PUBLIC_HOST:-$(hostname -I | awk '{print $1}')}"
-if [ -n "${SITE_DOMAIN:-}" ]; then
-  DOMAIN="$SITE_DOMAIN"; URL="https://$SITE_DOMAIN"; CADDY_TLS=""
+# Домен из секрета приводим к виду example.ru (без https://, www. и слэша).
+SITE_DOMAIN="$(printf '%s' "${SITE_DOMAIN:-}" | sed -E 's#^https?://##; s#/.*$##; s#^www\.##' | tr 'A-Z' 'a-z')"
+if [ -n "$SITE_DOMAIN" ]; then
+  # Сайт на домене и www-адресе: Caddy сам получает бесплатные сертификаты Let's Encrypt
+  # и продлевает их; www перенаправляется на основной адрес.
+  SITE_HOST="$SITE_DOMAIN"; DOMAIN="$SITE_DOMAIN, www.$SITE_DOMAIN"; URL="https://$SITE_DOMAIN"
+  CADDY_TLS=""; CADDY_HSTS="header Strict-Transport-Security max-age=31536000"
 else
   # Без домена — только http://IP (HTTPS по голому IP браузеры и Caddy толком не поддерживают).
-  DOMAIN=":80"; URL="http://$IP"; CADDY_TLS=""
+  SITE_HOST="localhost.invalid"; DOMAIN=":80"; URL="http://$IP"; CADDY_TLS=""; CADDY_HSTS=""
 fi
 # Почта: значения приходят из секретов GitHub; пустые — не трогаем то, что уже есть в .env.
 for v in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM; do
   val="${!v:-}"
   if [ -n "$val" ]; then sed -i "/^$v=/d" .env; printf "%s='%s'\n" "$v" "$val" >> .env; fi
 done
-sed -i '/^SITE_DOMAIN=/d;/^NEXT_PUBLIC_SERVER_URL=/d;/^CADDY_TLS=/d' .env
-echo "SITE_DOMAIN=$DOMAIN" >> .env
-echo "NEXT_PUBLIC_SERVER_URL=$URL" >> .env
-echo "CADDY_TLS=$CADDY_TLS" >> .env
+sed -i '/^SITE_DOMAIN=/d;/^SITE_HOST=/d;/^NEXT_PUBLIC_SERVER_URL=/d;/^CADDY_TLS=/d;/^CADDY_HSTS=/d' .env
+{
+  echo "SITE_DOMAIN='$DOMAIN'"
+  echo "SITE_HOST=$SITE_HOST"
+  echo "NEXT_PUBLIC_SERVER_URL=$URL"
+  echo "CADDY_TLS=$CADDY_TLS"
+  echo "CADDY_HSTS='$CADDY_HSTS'"
+} >> .env
 # Переменные окружения важнее .env, поэтому выставляем их явно (пустой SITE_DOMAIN из выкладки иначе перекроет файл).
-export SITE_DOMAIN="$DOMAIN" NEXT_PUBLIC_SERVER_URL="$URL" CADDY_TLS="$CADDY_TLS"
+export SITE_DOMAIN="$DOMAIN" SITE_HOST="$SITE_HOST" NEXT_PUBLIC_SERVER_URL="$URL" CADDY_TLS="$CADDY_TLS" CADDY_HSTS="$CADDY_HSTS"
 
 # 5. Запуск готового образа (собран в GitHub Actions). Миграции базы применяются при старте сайта.
 log "Загружаю образ сайта"
@@ -110,7 +119,7 @@ docker image prune -f >/dev/null
 
 log "Жду ответа сайта"
 for i in $(seq 1 60); do
-  if curl -fsS -o /dev/null "http://127.0.0.1/api/globals/site-settings" -H "Host: ${SITE_DOMAIN:-$IP}" 2>/dev/null \
+  if curl -fsS -o /dev/null "http://127.0.0.1/api/globals/site-settings" -H "Host: $IP" 2>/dev/null \
     || docker compose -f docker-compose.prod.yml exec -T app wget -qO- http://127.0.0.1:3000/api/globals/site-settings >/dev/null 2>&1; then
     log "Сайт работает: $URL  (админка: $URL/admin)"
     echo "::notice title=Адрес сайта в настройках::$URL"

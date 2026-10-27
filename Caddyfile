@@ -1,7 +1,21 @@
 {$SITE_DOMAIN} {
-	# Дополнительные настройки TLS (обычно пусто: с доменом сертификат Let's Encrypt выпускается сам).
+	# Дополнительные настройки TLS (обычно пусто: с доменом сертификат Let's Encrypt выпускается и продлевается сам).
 	{$CADDY_TLS}
 	encode zstd gzip
+
+	# www.домен → основной домен (одна каноническая версия сайта для поисковиков).
+	@www host www.{$SITE_HOST}
+	redir @www https://{$SITE_HOST}{uri} permanent
+
+	# Заголовки безопасности. HSTS (только HTTPS) включается, когда у сайта есть домен.
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options SAMEORIGIN
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+	{$CADDY_HSTS}
 
 	# Обмен с 1С снаружи закрыт. На своём сервере он будет открыт только на внутреннем адресе.
 	@exchange path /api/exchange*
