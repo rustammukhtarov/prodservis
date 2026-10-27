@@ -16,3 +16,23 @@ jobs:
           n "Сертификат" "${cert:-нет}"
           h=$(curl -sI -m 20 https://prodmskshop.ru/ | grep -iE 'strict-transport|x-frame|x-content|referrer' | tr '\r\n' '  ')
           n "Заголовки" "${h:-нет}"
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER || 'root' }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /root/prodservis
+            n() { printf '::notice title=%s::%s\n' "$1" "$(printf '%s' "$2" | tr '\n' ' ' | cut -c1-3000)"; }
+            n "env" "$(grep -E '^(SITE_DOMAIN|SITE_HOST|NEXT_PUBLIC_SERVER_URL|CADDY_HSTS|SMTP_HOST|SMTP_PORT|SMTP_USER|SMTP_FROM)=' .env)"
+            n "SMTP_PASS задан" "$(grep -c '^SMTP_PASS=.\+' .env)"
+            n "контейнеры" "$(docker compose -f docker-compose.prod.yml ps --format '{{.Name}} {{.Status}}')"
+            n "caddy env" "$(docker compose -f docker-compose.prod.yml exec -T caddy env | grep -E 'SITE_|CADDY_')"
+            n "caddy лог" "$(docker compose -f docker-compose.prod.yml logs --tail 40 caddy 2>&1 | grep -iE 'error|obtain|certificate|challenge|acme' | tail -12)"
+            n "ACME доступ" "$(curl -s -o /dev/null -m 15 -w '%{http_code}' https://acme-v02.api.letsencrypt.org/directory)"
+            n "smtp 465" "$(timeout 8 bash -c 'echo > /dev/tcp/smtp.timeweb.ru/465' 2>/dev/null && echo open || echo closed)"
+            n "smtp 2525" "$(timeout 8 bash -c 'echo > /dev/tcp/smtp.timeweb.ru/2525' 2>/dev/null && echo open || echo closed)"
+            n "app лог почта" "$(docker compose -f docker-compose.prod.yml logs --tail 200 app 2>&1 | grep -iE 'email|smtp|mail' | tail -5)"
