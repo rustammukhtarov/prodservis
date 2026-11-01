@@ -114,6 +114,18 @@ export interface ImportBatch {
   buyerGroups?: BuyerGroupRec[]
   buyers?: BuyerRec[]
   agreements?: AgreementRec[]
+  /** Статусы заказов сайта, обработанных в 1С (ручная загрузка из Excel). */
+  orderStatuses?: OrderStatusRec[]
+}
+
+export type OrderStatus = 'new' | 'accepted' | 'picking' | 'shipping' | 'delivered' | 'cancelled'
+
+export interface OrderStatusRec {
+  /** Номер заказа на сайте. */
+  number: string
+  status?: OrderStatus | null
+  /** Номер или ID документа в 1С. */
+  guid1C?: string | null
 }
 
 export interface RecordError {

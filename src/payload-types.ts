@@ -643,7 +643,7 @@ export interface Page {
   _status?: ('draft' | 'published') | null;
 }
 /**
- * Загрузите файл по шаблону «Продсервис — импорт». Данные применяются сразу после загрузки.
+ * Ручной обмен с 1С, когда автоматический недоступен: выгрузите данные сайта или шаблон, заполните из 1С и загрузите сюда. Данные применяются сразу после загрузки.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "imports".
@@ -651,6 +651,10 @@ export interface Page {
 export interface Import {
   id: number;
   status?: ('pending' | 'done' | 'partial' | 'failed') | null;
+  /**
+   * Для полной выгрузки каталога из 1С: товары сайта, которых нет на листе «Товары», станут неактивными. Работает, только если в файле есть лист «Товары».
+   */
+  deactivateMissing?: boolean | null;
   summary?: string | null;
   errorsText?: string | null;
   updatedAt: string;
@@ -1166,6 +1170,7 @@ export interface DocumentsSelect<T extends boolean = true> {
  */
 export interface ImportsSelect<T extends boolean = true> {
   status?: T;
+  deactivateMissing?: T;
   summary?: T;
   errorsText?: T;
   updatedAt?: T;

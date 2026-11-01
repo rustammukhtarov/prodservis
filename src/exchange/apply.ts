@@ -8,6 +8,7 @@ import type {
   GroupRec,
   ImportBatch,
   ImportResult,
+  OrderStatusRec,
   PriceRec,
   PriceTypeRef,
   ProductRec,
@@ -56,6 +57,7 @@ export async function applyBatch(payload: Payload, batch: ImportBatch, req?: Pay
   const buyers = [...(batch.buyers ?? [])].sort((a, b) => Number(a.kind === 'partner') - Number(b.kind === 'partner'))
   await run('buyers', buyers, (b) => ctx.upsertBuyer(b), (b) => b.guid)
   await run('agreements', batch.agreements, (a) => ctx.upsertAgreement(a), (a) => a.guid)
+  await run('orderStatuses', batch.orderStatuses, (o) => ctx.applyOrderStatus(o), (o) => `заказ ${o.number}`)
 
   return result
 }
@@ -293,5 +295,16 @@ class Ctx {
       buyer: a.kind === 'individual' ? await this.requireByGuid('buyers', a.buyerGuid ?? '', 'Покупатель') : null,
     }
     return (await this.save('price-agreements', existing, data)).op
+  }
+
+  /** Статус и номер из 1С для заказа сайта. Смена статуса отправляет клиенту письмо (хук заказа). */
+  async applyOrderStatus(o: OrderStatusRec) {
+    const order = await this.findOne('orders', { number: { equals: o.number } })
+    if (!order) throw new Error(`Заказ № ${o.number} на сайте не найден`)
+    const data: Record<string, unknown> = { exportedTo1C: true }
+    if (o.status && o.status !== order.status) data.status = o.status
+    if (o.guid1C) data.guid1C = o.guid1C
+    await this.payload.update({ collection: 'orders', id: order.id, data, overrideAccess: true, req: this.req })
+    return 'updated' as const
   }
 }

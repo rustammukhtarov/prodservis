@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs'
 
-import type { AgreementRec, BuyerRec, ImportBatch, ProductRec, RecordError, Storage, Unit } from './types'
+import type { AgreementRec, BuyerRec, ImportBatch, OrderStatus, ProductRec, RecordError, Storage, Unit } from './types'
 
 /**
  * Читает файл Excel по шаблону «Продсервис — импорт» и приводит его к формату обмена.
@@ -16,7 +16,14 @@ export const SHEETS = {
   buyers: 'Покупатели',
   points: 'Точки доставки',
   agreements: 'Торги и инд. цены',
+  orderStatuses: 'Статусы заказов',
 } as const
+
+const ORDER_STATUSES: Record<string, OrderStatus> = {
+  новый: 'new', принят: 'accepted', собирается: 'picking', 'в сборке': 'picking', 'в пути': 'shipping',
+  отгружен: 'shipping', доставлен: 'delivered', выполнен: 'delivered', отменен: 'cancelled', отменён: 'cancelled',
+  new: 'new', accepted: 'accepted', picking: 'picking', shipping: 'shipping', delivered: 'delivered', cancelled: 'cancelled',
+}
 
 /** Колонки листа «Цены», которые не являются прайсами. */
 const PRICE_SHEET_KEYS = ['артикул', 'код товара', 'название']
@@ -260,6 +267,18 @@ export async function parseWorkbook(buffer: ArrayBuffer | Buffer): Promise<{ bat
       return null
     })
     batch.agreements = [...docs.values()]
+  }
+
+  if (sheet(SHEETS.orderStatuses)) {
+    batch.orderStatuses = each('orderStatuses', SHEETS.orderStatuses, (r) => {
+      const number = need(str(r.get('Номер заказа')), 'Номер заказа')
+      const raw = norm(r.get('Статус'))
+      const status = raw ? ORDER_STATUSES[raw] : null
+      if (raw && !status) throw new Error(`статус «${r.get('Статус')}» — допустимо: новый, принят, собирается, в пути, доставлен, отменён`)
+      const guid1C = str(r.get('Номер в 1С'))
+      if (!status && !guid1C) return null
+      return { number, status, guid1C }
+    })
   }
 
   return { batch, errors }
