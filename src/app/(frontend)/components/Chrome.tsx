@@ -95,6 +95,12 @@ export async function Header({ viewer, query }: { viewer: Viewer; query?: string
                 Войти
               </Link>
             )}
+            {customer && (
+              <Link href="/account">
+                <IconUser />
+                Кабинет
+              </Link>
+            )}
             <Link href={customer ? '/orders' : '/login?next=/orders'}>
               <IconOrders />
               Заказы
@@ -135,7 +141,7 @@ export function Footer({ viewer }: { viewer: Viewer }) {
           <Link href="/catalog">Каталог</Link>
           <Link href="/info/dostavka">Доставка</Link>
           <Link href="/info/otsrochka-platezha">Отсрочка платежа</Link>
-          <Link href="/login">Личный кабинет</Link>
+          <Link href="/account">Личный кабинет</Link>
           <Link href="/register">Регистрация</Link>
         </nav>
         <nav aria-label="Компания" className="footer-col">

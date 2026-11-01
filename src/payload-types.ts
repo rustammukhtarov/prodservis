@@ -1260,7 +1260,7 @@ export interface SiteSetting {
   workHours?: string | null;
   requisites?: string | null;
   /**
-   * Адреса через запятую: новые заказы, регистрации клиентов, заявки поставщиков
+   * Адреса через запятую: новые заказы, регистрации клиентов, заявки поставщиков. Пусто — на ящик сайта (prodservice@prodmskshop.ru).
    */
   notifyEmails?: string | null;
   /**

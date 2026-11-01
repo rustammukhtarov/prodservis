@@ -1,6 +1,6 @@
 'use server'
 
-import { cookies, headers } from 'next/headers'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { validateInn } from '@/collections/SupplierApplications'
@@ -8,6 +8,7 @@ import { emailLayout, sendSafe, siteURL, staffRecipients } from '@/lib/email'
 import { allow, clientIp } from '@/lib/rateLimit'
 import { isB2B, SEGMENTS } from '@/lib/segments'
 
+import { setAuthCookie } from './lib/authCookie'
 import { getPayloadClient } from './lib/viewer'
 
 export type FormState = { error?: string; ok?: boolean; fields?: Record<string, string> } | null
@@ -22,17 +23,6 @@ const digits = (s: string) => s.replace(/\D/g, '')
 /** Что вернуть в форму, чтобы человек не набирал всё заново (пароли — никогда). */
 const keep = (fd: FormData, keys: string[]) =>
   Object.fromEntries(keys.map((k) => [k, str(fd, k, 2000)]))
-
-/** Ставит cookie входа, как это делает сам Payload. */
-async function setAuthCookie(token: string, exp?: number) {
-  ;(await cookies()).set('payload-token', token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    secure: siteURL().startsWith('https://'),
-    expires: exp ? new Date(exp * 1000) : undefined,
-  })
-}
 
 const REG_FIELDS = [
   'segment',

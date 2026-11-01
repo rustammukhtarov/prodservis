@@ -1494,3 +1494,122 @@ fieldset.field legend {
 .done svg {
   color: var(--green-dark);
 }
+
+/* Личный кабинет */
+.acc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.acc-head p {
+  margin: 4px 0 0;
+}
+.acc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.acc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+a.acc-stat:hover {
+  border-color: var(--line-strong);
+}
+.acc-stat strong {
+  font-size: 20px;
+}
+.acc-stat span {
+  color: var(--muted, #5b6155);
+  font-size: 14px;
+}
+.acc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.acc-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  background: #fff;
+  min-width: 0;
+}
+.acc-card h2 {
+  font-size: 20px;
+  margin: 0 0 14px;
+}
+.acc-list {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.acc-list > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.acc-list > li:first-child {
+  padding-top: 0;
+}
+.acc-list > li > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.acc-row-end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.acc-points {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+.acc-remove {
+  color: #b42318;
+  white-space: nowrap;
+}
+.acc-more {
+  margin-top: 8px;
+}
+.acc-more summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--green-deep);
+  padding: 6px 0;
+}
+.acc-add {
+  margin-top: 10px;
+}
+.form-ok {
+  margin: 0;
+  color: var(--green-deep);
+  font-weight: 600;
+}
+@media (max-width: 860px) {
+  .acc-grid,
+  .acc-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
