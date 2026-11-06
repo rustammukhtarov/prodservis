@@ -35,3 +35,13 @@ export const SEGMENT_OPTIONS = SEGMENTS.map(({ label, value }) => ({ label, valu
 
 export const isB2B = (segment: string | null | undefined): boolean =>
   SEGMENTS.some((s) => s.value === segment && s.b2b)
+
+type SegmentSettings = { segments?: Record<string, { isOpen?: boolean | null } | null> | null } | null | undefined
+
+/** Принимает ли сайт этот тип клиентов (настройка «Принимаем на сайте»). Пусто — юрлица да, физлица нет. */
+export const isSegmentOpen = (settings: SegmentSettings, segment: string): boolean =>
+  settings?.segments?.[segment]?.isOpen ?? isB2B(segment)
+
+/** Типы клиентов, которые сейчас можно выбрать при регистрации. */
+export const openSegments = (settings: SegmentSettings): string[] =>
+  SEGMENTS.map((s) => s.value).filter((v) => isSegmentOpen(settings, v))

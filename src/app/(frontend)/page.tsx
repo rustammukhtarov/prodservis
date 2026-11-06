@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { isSegmentOpen } from '@/lib/segments'
 import type { Media, Product } from '@/payload-types'
 
 import { IconCalendar, IconCheck, IconTag, IconTruck } from './components/Icons'
@@ -152,7 +153,7 @@ export default async function HomePage() {
       <section className="section">
         <h2>Работаем с вами, кем бы вы ни были</h2>
         <div className="segments">
-          {SEGMENTS.map((s) => (
+          {SEGMENTS.filter((s) => isSegmentOpen(viewer.settings, s.type)).map((s) => (
             <div key={s.title} className="segment">
               <strong>{s.title}</strong>
               <ul>

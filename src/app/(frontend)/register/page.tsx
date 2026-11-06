@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { openSegments } from '@/lib/segments'
+
 import { registerCustomer } from '../account-actions'
 import { RegisterForm } from '../components/AccountForms'
 import { Shell } from '../components/Shell'
@@ -10,12 +12,11 @@ import { getViewer } from '../lib/viewer'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Регистрация' }
 
-const TYPES = ['horeca', 'retail', 'wholesale', 'individual']
-
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const viewer = await getViewer()
   if (viewer.customer) redirect('/catalog')
   const type = (await searchParams).type
+  const open = openSegments(viewer.settings)
   return (
     <Shell viewer={viewer}>
       <nav aria-label="Хлебные крошки" className="crumbs">
@@ -27,7 +28,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
         <div className="auth-box">
           <h1>Стать клиентом</h1>
           <p className="muted">Зарегистрируйтесь — и каталог покажет ваши цены.</p>
-          <RegisterForm action={registerCustomer} initialType={TYPES.includes(type) ? type : 'horeca'} />
+          <RegisterForm action={registerCustomer} open={open} initialType={open.includes(type) ? type : (open[0] ?? 'horeca')} />
         </div>
         <aside className="auth-side">
           <h2 className="h3">Как это работает</h2>

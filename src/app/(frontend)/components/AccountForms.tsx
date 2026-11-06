@@ -76,10 +76,20 @@ const Errors = ({ state }: { state: FormState }) =>
     </p>
   ) : null
 
-export function RegisterForm({ action, initialType }: { action: Action; initialType: string }) {
+export function RegisterForm({
+  action,
+  initialType,
+  open,
+}: {
+  action: Action
+  initialType: string
+  /** Типы клиентов, которые сейчас принимаем (настройки сайта). */
+  open: string[]
+}) {
   const [state, formAction, pending] = useActionState(action, null)
   const f = state?.fields ?? {}
-  const [segment, setSegment] = useState(f.segment || initialType || 'horeca')
+  const choices = SEGMENTS.filter((s) => open.includes(s.value))
+  const [segment, setSegment] = useState(f.segment || initialType || choices[0]?.value || 'horeca')
   const b2b = segment !== 'individual'
 
   return (
@@ -87,7 +97,7 @@ export function RegisterForm({ action, initialType }: { action: Action; initialT
       <Honeypot />
       <fieldset className="segments-pick">
         <legend>Кто вы?</legend>
-        {SEGMENTS.map((s) => (
+        {choices.map((s) => (
           <label key={s.value} className={`seg ${segment === s.value ? 'is-on' : ''}`}>
             <input
               type="radio"

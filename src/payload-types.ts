@@ -1286,6 +1286,10 @@ export interface SiteSetting {
   guestPriceType?: (number | null) | PriceType;
   segments?: {
     horeca?: {
+      /**
+       * Выключите, чтобы этот тип клиентов не мог зарегистрироваться и заказывать на сайте
+       */
+      isOpen?: boolean | null;
       minOrderSum?: number | null;
       /**
        * Если клиенту не назначен свой прайс
@@ -1297,6 +1301,10 @@ export interface SiteSetting {
       autoApprove?: boolean | null;
     };
     retail?: {
+      /**
+       * Выключите, чтобы этот тип клиентов не мог зарегистрироваться и заказывать на сайте
+       */
+      isOpen?: boolean | null;
       minOrderSum?: number | null;
       /**
        * Если клиенту не назначен свой прайс
@@ -1308,6 +1316,10 @@ export interface SiteSetting {
       autoApprove?: boolean | null;
     };
     wholesale?: {
+      /**
+       * Выключите, чтобы этот тип клиентов не мог зарегистрироваться и заказывать на сайте
+       */
+      isOpen?: boolean | null;
       minOrderSum?: number | null;
       /**
        * Если клиенту не назначен свой прайс
@@ -1319,6 +1331,10 @@ export interface SiteSetting {
       autoApprove?: boolean | null;
     };
     individual?: {
+      /**
+       * Пока физлиц не обслуживаем — выключено. Включите, когда начнёте работать с частными клиентами
+       */
+      isOpen?: boolean | null;
       minOrderSum?: number | null;
       /**
        * Если клиенту не назначен свой прайс
@@ -1370,6 +1386,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         horeca?:
           | T
           | {
+              isOpen?: T;
               minOrderSum?: T;
               defaultPriceType?: T;
               autoApprove?: T;
@@ -1377,6 +1394,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         retail?:
           | T
           | {
+              isOpen?: T;
               minOrderSum?: T;
               defaultPriceType?: T;
               autoApprove?: T;
@@ -1384,6 +1402,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         wholesale?:
           | T
           | {
+              isOpen?: T;
               minOrderSum?: T;
               defaultPriceType?: T;
               autoApprove?: T;
@@ -1391,6 +1410,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         individual?:
           | T
           | {
+              isOpen?: T;
               minOrderSum?: T;
               defaultPriceType?: T;
               autoApprove?: T;

@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { validateInn } from '@/collections/SupplierApplications'
 import { emailLayout, sendSafe, siteURL, staffRecipients } from '@/lib/email'
 import { allow, clientIp } from '@/lib/rateLimit'
-import { isB2B, SEGMENTS } from '@/lib/segments'
+import { isB2B, isSegmentOpen, SEGMENTS } from '@/lib/segments'
 
 import { setAuthCookie } from './lib/authCookie'
 import { getPayloadClient } from './lib/viewer'
@@ -82,8 +82,14 @@ export async function registerCustomer(_prev: FormState, fd: FormData): Promise<
     depth: 0,
     overrideAccess: true,
   })) as {
-    segments?: Record<string, { autoApprove?: boolean | null } | null>
+    segments?: Record<string, { autoApprove?: boolean | null; isOpen?: boolean | null } | null>
   }
+  if (!isSegmentOpen(settings, segment))
+    return fail(
+      b2b
+        ? 'Регистрация для этого типа клиентов сейчас закрыта. Позвоните нам — поможем.'
+        : 'Пока мы работаем только с организациями и ИП. Доставку для дома запустим позже.',
+    )
   const autoApprove = settings.segments?.[segment]?.autoApprove ?? !b2b
   const status = autoApprove ? 'active' : 'pending'
 

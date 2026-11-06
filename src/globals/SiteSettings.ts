@@ -86,6 +86,17 @@ export const SiteSettings: GlobalConfig = {
                 type: 'group' as const,
                 fields: [
                   {
+                    name: 'isOpen',
+                    label: 'Принимаем на сайте',
+                    type: 'checkbox' as const,
+                    defaultValue: segment.b2b,
+                    admin: {
+                      description: segment.b2b
+                        ? 'Выключите, чтобы этот тип клиентов не мог зарегистрироваться и заказывать на сайте'
+                        : 'Пока физлиц не обслуживаем — выключено. Включите, когда начнёте работать с частными клиентами',
+                    },
+                  },
+                  {
                     type: 'row' as const,
                     fields: [
                       {
